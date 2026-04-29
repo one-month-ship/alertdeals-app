@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "dev:web": "turbo run dev --filter=@alertdeals/web",
-    "dev:worker": "turbo run dev --filter=@alertdeals/worker",
+    "dev:api": "turbo run dev --filter=@alertdeals/api",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
