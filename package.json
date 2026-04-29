@@ -15,7 +15,9 @@
     "typecheck": "turbo run typecheck",
     "db:generate": "pnpm --filter @alertdeals/db generate",
     "db:migrate": "pnpm --filter @alertdeals/db migrate",
-    "db:studio": "pnpm --filter @alertdeals/db studio"
+    "db:studio": "pnpm --filter @alertdeals/db studio",
+    "supabase:start": "npx @dotenvx/dotenvx run --env-file=.env -- supabase start",
+    "supabase:stop": "supabase stop"
   },
   "devDependencies": {
     "turbo": "^2.3.3",
