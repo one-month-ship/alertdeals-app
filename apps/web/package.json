@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --turbo --port 3000",
+    "dev": "sh -c 'next dev --turbo --port $WEB_PORT'",
     "build": "next build",
-    "start": "next start --port 3000",
+    "start": "sh -c 'next start --port $WEB_PORT'",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
@@ -28,7 +28,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
-    "@types/node": "^22.10.5",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
     "eslint": "^9.18.0",
