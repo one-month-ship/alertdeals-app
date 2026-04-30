@@ -12,11 +12,11 @@ else
   SEED_NAME=$(git log -1 --pretty=format:'%an' | tr '[:upper:]' '[:lower:]')
 fi
 
-PERSONAL_SEED="supabase/seeds/${SEED_NAME}.sql"
+PERSONAL_SEED="packages/db/supabase/seeds/${SEED_NAME}.sql"
 
 if [ -f "$PERSONAL_SEED" ] && [ -s "$PERSONAL_SEED" ]; then
   # Reset without auto seed (we'll load the personal seed manually)
-  supabase db reset --no-seed
+  supabase --workdir packages/db db reset --no-seed
 
   # Find the Supabase Postgres container dynamically
   DB_CONTAINER=$(docker ps --filter "name=supabase_db_" --format "{{.Names}}" | head -1)
@@ -40,14 +40,14 @@ if [ -f "$PERSONAL_SEED" ] && [ -s "$PERSONAL_SEED" ]; then
     echo "   Options to recover:"
     echo "   1. Continue without seed (use the app/Studio to create new test data)"
     echo "   2. Reset your seed entirely:"
-    echo "      rm supabase/seeds/${SEED_NAME}.sql"
+    echo "      rm packages/db/supabase/seeds/${SEED_NAME}.sql"
     echo "      pnpm db:reset"
     echo "      # then create your test data and run pnpm db:dump --commit"
     echo ""
   fi
 else
   # No personal seed: use the common seed.sql via standard reset
-  supabase db reset
+  supabase --workdir packages/db db reset
 fi
 
 echo ""

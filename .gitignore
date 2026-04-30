@@ -18,7 +18,7 @@ dist/
 !.env
 !.env.example
 !.env.[NODE_ENV].example
-!supabase/.env.preview
+!packages/db/supabase/.env.preview
 
 *.tsbuildinfo
 next-env.d.ts

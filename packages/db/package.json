@@ -12,7 +12,7 @@
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
     "push": "drizzle-kit push",
-    "studio": "drizzle-kit studio",
+    "db:studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit",
     "lint": "echo 'no lint configured'"
   },
