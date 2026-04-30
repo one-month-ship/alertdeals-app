@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-PREVIEW_FILE="supabase/.env.preview"
+PREVIEW_FILE="packages/db/supabase/.env.preview"
 
 echo "→ Encrypting secrets to $PREVIEW_FILE..."
 

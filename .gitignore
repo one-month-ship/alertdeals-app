@@ -7,18 +7,16 @@ dist/
 
 # Env files committed:    `.env`, `.env.{development,staging,production}`, `*.example`
 # Env files gitignored:   `.env.local`, `.env.*.local` (secrets)
-.env.local
 .env.*.local
 !.env.example
 !.env.[NODE_ENV].example
 
 # Stray .env files anywhere in the workspace — env config is centralized at the repo root.
-**/.env
-**/.env.*
 !.env
 !.env.example
 !.env.[NODE_ENV].example
-!supabase/.env.preview
+!packages/db/supabase/.env.preview
 
 *.tsbuildinfo
 next-env.d.ts
+config.bat

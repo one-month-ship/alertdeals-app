@@ -1,2 +1,0 @@
--- Common seed loaded by `supabase db reset` when no personal seed exists.
--- Personal seeds live in `supabase/seeds/<firstname>.sql` and override this one.

@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --turbo",
+    "dev": "sh -c 'next dev --turbo --port $WEB_PORT'",
     "build": "next build",
-    "start": "next start",
+    "start": "sh -c 'next start --port $WEB_PORT'",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
