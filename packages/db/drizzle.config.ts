@@ -1,12 +1,22 @@
 import type { Config } from 'drizzle-kit';
 
 export default {
+  schemaFilter: ['public'],
   schema: './src/schema/*.schema.ts',
-  out: './src/drizzle/migrations',
+  out: './supabase/migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? '',
+    url: process.env.SUPABASE_DATABASE_URL ?? '',
+  },
+  migrations: {
+    prefix: 'supabase',
   },
   strict: true,
   verbose: true,
+  entities: {
+    roles: {
+      provider: 'supabase',
+      exclude: ['supabase_auth_admin'],
+    },
+  },
 } satisfies Config;
