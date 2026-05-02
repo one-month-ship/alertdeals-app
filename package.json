@@ -7,19 +7,30 @@
     "node": ">=20.11.0"
   },
   "scripts": {
-    "dev": "turbo run dev",
-    "dev:web": "turbo run dev --filter=@alertdeals/web",
-    "dev:api": "turbo run dev --filter=@alertdeals/api",
-    "build": "turbo run build",
+    "_with-env-dev": "dotenvx run -f .env -f .env.local -f .env.development.local --",
+    "_with-env-prod": "dotenvx run -f .env -f .env.local -f .env.production.local --",
+
+    "dev": "pnpm _with-env-dev turbo run dev",
+    "dev:web": "pnpm _with-env-dev turbo run dev --filter=@alertdeals/web",
+    "dev:api": "pnpm _with-env-dev turbo run dev --filter=@alertdeals/api",
+
+    "build": "pnpm _with-env-prod turbo run build",
+    "build:web": "pnpm _with-env-prod turbo run build --filter=@alertdeals/web",
+    "build:api": "pnpm _with-env-prod turbo run build --filter=@alertdeals/api",
+
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "db:generate": "pnpm --filter @alertdeals/db generate",
-    "db:migrate": "pnpm --filter @alertdeals/db migrate",
-    "db:studio": "pnpm --filter @alertdeals/db studio",
-    "supabase:start": "npx @dotenvx/dotenvx run --env-file=.env -- supabase start",
-    "supabase:stop": "supabase stop"
+    "format": "prettier --write .",
+
+    "db:start": "pnpm _with-env-dev pnpm --filter @alertdeals/db db:start",
+    "db:stop": "pnpm --filter @alertdeals/db db:stop",
+    "db:studio": "pnpm --filter @alertdeals/db db:studio",
+    "db:generate": "pnpm _with-env-dev pnpm --filter @alertdeals/db db:generate",
+    "db:migrate": "pnpm _with-env-dev pnpm --filter @alertdeals/db db:migrate"
   },
   "devDependencies": {
+    "@dotenvx/dotenvx": "^1.34.0",
+    "prettier": "^3.4.2",
     "turbo": "^2.3.3",
     "typescript": "^5.7.3"
   }
