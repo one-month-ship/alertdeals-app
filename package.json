@@ -7,8 +7,8 @@
     "node": ">=20.11.0"
   },
   "scripts": {
-    "_with-env-dev": "dotenvx run -f .env -f .env.local -f .env.development.local --",
-    "_with-env-prod": "dotenvx run -f .env -f .env.local -f .env.production.local --",
+    "_with-env-dev": "dotenvx run --ignore=MISSING_ENV_FILE -f .env -f .env.local -f .env.development.local --",
+    "_with-env-prod": "dotenvx run --ignore=MISSING_ENV_FILE -f .env -f .env.local -f .env.production.local --",
 
     "dev": "pnpm _with-env-dev turbo run dev",
     "dev:web": "pnpm _with-env-dev turbo run dev --filter=@alertdeals/web",
