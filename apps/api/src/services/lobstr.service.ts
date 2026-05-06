@@ -368,6 +368,8 @@ const resolveBrandId = async (
     })
     .returning({ id: brandsTable.id });
 
+  if (!inserted) throw new Error(`Failed to upsert brand "${lobstrValue}"`);
+
   referenceData.brands.set(lobstrValue, inserted.id);
   return inserted.id;
 };
@@ -394,6 +396,8 @@ const resolveModelId = async (
       set: { lobstrValue: sql`excluded.lobstr_value` },
     })
     .returning({ id: vehicleModelsTable.id });
+
+  if (!inserted) throw new Error(`Failed to upsert model "${lobstrValue}"`);
 
   referenceData.vehicleModels.set(lobstrValue, inserted.id);
   return inserted.id;
