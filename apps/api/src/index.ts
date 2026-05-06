@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq';
 import express, { Request, Response } from 'express';
 import { Server } from 'http';
+import { queues } from './queues/index.js';
 import { connection } from './redis.js';
 import routes from './routes/index.js';
 import { startAllWorkers } from './workers/index.js';
@@ -22,6 +23,24 @@ app.use('/api', routes);
 
 (async () => {
   try {
+    // Bull Board UI — dev only. Inspect queues at /ui.
+    if (process.env.NODE_ENV !== 'production') {
+      const { createBullBoard } = await import('@bull-board/api');
+      const { BullMQAdapter } = await import('@bull-board/api/bullMQAdapter');
+      const { ExpressAdapter } = await import('@bull-board/express');
+
+      const serverAdapter = new ExpressAdapter();
+      serverAdapter.setBasePath('/ui');
+
+      createBullBoard({
+        queues: Object.values(queues).map((q) => new BullMQAdapter(q)),
+        serverAdapter,
+      });
+
+      app.use('/ui', serverAdapter.getRouter());
+      console.log(`[api] Bull Board available at http://localhost:${PORT}/ui`);
+    }
+
     workers = await startAllWorkers();
     console.log(`[api] ${workers.length} worker(s) started`);
 

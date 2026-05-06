@@ -19,6 +19,8 @@
     "ioredis": "^5.4.2"
   },
   "devDependencies": {
+    "@bull-board/api": "^6.19.0",
+    "@bull-board/express": "^6.19.0",
     "@types/express": "^5.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
