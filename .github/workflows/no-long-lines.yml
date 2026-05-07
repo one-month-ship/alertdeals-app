@@ -1,0 +1,31 @@
+name: no-long-lines
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject lines longer than 500 chars in source files
+        run: |
+          MAX=500
+          BAD=$(git ls-files '*.js' '*.ts' '*.tsx' '*.jsx' '*.json' '*.cjs' '*.mjs' '*.yml' '*.yaml' 2>/dev/null \
+            | grep -v -E '(^|/)(node_modules|dist|build|coverage|\.next|out)/' \
+            | grep -v -E '\.(min|bundle)\.(js|css)$' \
+            | grep -v -E '(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$' \
+            | while read f; do
+                awk -v file="$f" -v max=$MAX '
+                  length > max { printf "%s:%d: %d chars\n", file, NR, length }
+                ' "$f"
+              done)
+          if [ -n "$BAD" ]; then
+            echo "::error::Lignes trop longues détectées (limite $MAX chars) — risque d'injection de code obfusqué"
+            echo "$BAD"
+            exit 1
+          fi
+          echo "OK — toutes les lignes <= $MAX caractères"
