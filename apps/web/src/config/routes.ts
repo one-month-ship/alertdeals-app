@@ -3,22 +3,20 @@
  * Single source of truth for all application routes
  */
 
-const DASHBOARD_PREFIX = '/dashboard';
-
 export const pages = {
-  // Authentication
+  // Public
   home: '/',
   login: '/login',
   authCallback: '/auth/callback',
 
-  // Main app
-  dashboard: DASHBOARD_PREFIX,
-
-  // Alerts
+  // Protected (route group, URLs at root)
+  hotDeals: '/hot-deals',
   alerts: {
-    list: `${DASHBOARD_PREFIX}/alerts`,
-    new: `${DASHBOARD_PREFIX}/alerts/new`,
+    list: '/alerts',
+    new: '/alerts/new',
   },
+  subscription: '/subscription',
+  account: '/account',
 } as const;
 
 type ExtractStaticRoutes<T> = T extends string
