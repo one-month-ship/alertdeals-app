@@ -5,15 +5,9 @@ dist/
 *.log
 .DS_Store
 
-# Env — ignore all .env files everywhere
-**/.env
-**/.env.*
-
-# Exceptions: example files and root .env
-!/.env
-!/.env.example
-!**/.env.example
-!packages/db/supabase/.env.preview
+# Env — only ignore .local files (secrets)
+**/.env.local
+**/.env.*.local
 
 *.tsbuildinfo
 next-env.d.ts
