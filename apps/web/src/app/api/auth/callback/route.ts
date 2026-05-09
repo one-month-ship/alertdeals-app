@@ -1,5 +1,6 @@
 import { pages } from '@/config/routes';
 import { createClient } from '@/lib/supabase/server';
+import { accounts, eq, getDBAdminClient } from '@alertdeals/db';
 import { NextResponse } from 'next/server';
 
 const USER_ERRORS = {
@@ -45,35 +46,36 @@ async function handleAuthSuccess(origin: string): Promise<NextResponse> {
     return redirectToLogin(origin, USER_ERRORS.GENERIC);
   }
 
-  const { data: account, error: fetchError } = await supabase
-    .from('accounts')
-    .select('id, confirmed_by_admin, is_first_connexion')
-    .eq('id', user.id)
-    .single();
+  const db = getDBAdminClient();
+  const [account] = await db
+    .select({
+      id: accounts.id,
+      confirmedByAdmin: accounts.confirmedByAdmin,
+      isFirstConnexion: accounts.isFirstConnexion,
+    })
+    .from(accounts)
+    .where(eq(accounts.id, user.id))
+    .limit(1);
 
-  if (fetchError || !account) {
-    console.error('[auth/callback] account fetch failed', { userId: user.id, fetchError });
+  if (!account) {
+    console.error('[auth/callback] account not found', { userId: user.id });
     await supabase.auth.signOut();
     return redirectToLogin(origin, USER_ERRORS.ACCOUNT_FETCH);
   }
 
-  if (!account.confirmed_by_admin) {
+  if (!account.confirmedByAdmin) {
     await supabase.auth.signOut();
     return redirectToLogin(origin, USER_ERRORS.NOT_CONFIRMED);
   }
 
-  if (account.is_first_connexion) {
-    const { error: updateError } = await supabase
-      .from('accounts')
-      .update({ is_first_connexion: false })
-      .eq('id', user.id);
-    if (updateError) {
-      console.error('[auth/callback] is_first_connexion update failed', updateError);
-    }
-    return NextResponse.redirect(`${origin}${pages.alerts.new}`);
+  if (account.isFirstConnexion) {
+    await db
+      .update(accounts)
+      .set({ isFirstConnexion: false })
+      .where(eq(accounts.id, user.id));
   }
 
-  return NextResponse.redirect(`${origin}${pages.dashboard}`);
+  return NextResponse.redirect(`${origin}${pages.hotDeals}`);
 }
 
 export async function GET(request: Request) {

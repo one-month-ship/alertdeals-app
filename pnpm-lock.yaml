@@ -21,68 +21,6 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
-  apps/api:
-    dependencies:
-      '@alertdeals/db':
-        specifier: workspace:*
-        version: link:../../packages/db
-      '@alertdeals/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
-      bullmq:
-        specifier: ^5.34.5
-        version: 5.76.3
-      express:
-        specifier: ^4.21.2
-        version: 4.22.1
-      ioredis:
-        specifier: ^5.4.2
-        version: 5.10.1
-    devDependencies:
-      '@bull-board/api':
-        specifier: ^6.19.0
-        version: 6.21.3(@bull-board/ui@6.21.3)
-      '@bull-board/express':
-        specifier: ^6.19.0
-        version: 6.21.3
-      '@types/express':
-        specifier: ^5.0.0
-        version: 5.0.6
-      tsx:
-        specifier: ^4.19.2
-        version: 4.21.0
-      typescript:
-        specifier: ^5.7.3
-        version: 5.9.3
-
-  apps/api:
-    dependencies:
-      '@alertdeals/db':
-        specifier: workspace:*
-        version: link:../../packages/db
-      '@alertdeals/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
-      bullmq:
-        specifier: ^5.34.5
-        version: 5.76.3
-      express:
-        specifier: ^4.21.2
-        version: 4.22.1
-      ioredis:
-        specifier: ^5.4.2
-        version: 5.10.1
-    devDependencies:
-      '@types/express':
-        specifier: ^5.0.0
-        version: 5.0.6
-      tsx:
-        specifier: ^4.19.2
-        version: 4.21.0
-      typescript:
-        specifier: ^5.7.3
-        version: 5.9.3
-
   apps/web:
     dependencies:
       '@alertdeals/db':
@@ -158,6 +96,40 @@ importers:
       tailwindcss:
         specifier: ^4.0.0
         version: 4.2.4
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  apps/worker:
+    dependencies:
+      '@alertdeals/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@alertdeals/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      bullmq:
+        specifier: ^5.34.5
+        version: 5.76.3
+      express:
+        specifier: ^4.21.2
+        version: 4.22.1
+      ioredis:
+        specifier: ^5.4.2
+        version: 5.10.1
+    devDependencies:
+      '@bull-board/api':
+        specifier: ^6.19.0
+        version: 6.21.3(@bull-board/ui@6.21.3)
+      '@bull-board/express':
+        specifier: ^6.19.0
+        version: 6.21.3
+      '@types/express':
+        specifier: ^5.0.0
+        version: 5.0.6
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
       typescript:
         specifier: ^5.7.3
         version: 5.9.3

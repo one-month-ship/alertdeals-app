@@ -1,0 +1,28 @@
+{
+  "name": "@alertdeals/worker",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "echo 'no lint configured'",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@alertdeals/db": "workspace:*",
+    "@alertdeals/shared": "workspace:*",
+    "bullmq": "^5.34.5",
+    "express": "^4.21.2",
+    "ioredis": "^5.4.2"
+  },
+  "devDependencies": {
+    "@bull-board/api": "^6.19.0",
+    "@bull-board/express": "^6.19.0",
+    "@types/express": "^5.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
