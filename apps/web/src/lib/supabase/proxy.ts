@@ -1,6 +1,13 @@
 import { pages } from '@/config/routes';
-import { createServerClient } from '@supabase/ssr';
+import { type CookieOptions, createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+
+const PROTECTED_PREFIXES = [
+  pages.hotDeals,
+  pages.alerts.list,
+  pages.subscription,
+  pages.account,
+] as const;
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -15,7 +22,7 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
@@ -33,8 +40,15 @@ export async function updateSession(request: NextRequest) {
   const user = data?.claims;
 
   const { pathname } = request.nextUrl;
-  const isProtected = pathname.startsWith(pages.dashboard);
-  const isAuthRoute = pathname === pages.login || pathname.startsWith('/auth');
+  const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+  const isAuthRoute = pathname === pages.login || pathname.startsWith('/api/auth');
+  const isHome = pathname === pages.home;
+
+  if (isHome) {
+    return NextResponse.redirect(
+      new URL(user ? pages.hotDeals : pages.login, request.url),
+    );
+  }
 
   // No user on a protected route → redirect to login
   if (!user && isProtected) {
@@ -43,9 +57,9 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Logged-in user on auth pages → redirect to dashboard
+  // Logged-in user on auth/login pages → redirect to main feature
   if (user && isAuthRoute) {
-    return NextResponse.redirect(new URL(pages.dashboard, request.url));
+    return NextResponse.redirect(new URL(pages.hotDeals, request.url));
   }
 
   // IMPORTANT: return supabaseResponse as-is, don't replace it.

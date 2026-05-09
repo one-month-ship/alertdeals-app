@@ -7,9 +7,9 @@ export const pages = {
   // Public
   home: '/',
   login: '/login',
-  authCallback: '/auth/callback',
+  authCallback: '/api/auth/callback',
 
-  // Protected (route group, URLs at root)
+  // Protected
   hotDeals: '/hot-deals',
   alerts: {
     list: '/alerts',

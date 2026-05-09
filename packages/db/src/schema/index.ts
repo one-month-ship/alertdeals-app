@@ -1,3 +1,3 @@
-export * from './account.schema.js';
-export * from './ad.schema.js';
+export * from './account.schema';
+export * from './ad.schema';
 

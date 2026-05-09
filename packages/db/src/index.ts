@@ -1,3 +1,3 @@
-export * from './drizzle/index.js';
-export * from './schema/index.js';
+export * from './drizzle';
+export * from './schema';
 

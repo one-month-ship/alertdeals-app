@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { Bell, BellRing, CreditCard, Flame, LogOut, Menu, User, X } from 'lucide-react';
+import { signOut } from '@/actions/auth.actions';
 import { pages } from '@/config/routes';
 import { cn } from '@/lib/utils';
 
@@ -17,8 +18,16 @@ const navItems = [
 export const Sidebar = () => {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [isSigningOut, startSignOut] = useTransition();
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
+  const handleSignOut = () => {
+    setOpen(false);
+    startSignOut(() => {
+      signOut();
+    });
+  };
 
   return (
     <>
@@ -86,14 +95,12 @@ export const Sidebar = () => {
           <div className="border-t border-white/10 p-3">
             <button
               type="button"
-              onClick={() => {
-                // TODO: wire to signOut server action once auth branch is merged
-                setOpen(false);
-              }}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 transition-all hover:bg-white/5 hover:text-white"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 transition-all hover:bg-white/5 hover:text-white disabled:opacity-50"
             >
               <LogOut size={18} className="text-slate-400" />
-              Déconnexion
+              {isSigningOut ? 'Déconnexion…' : 'Déconnexion'}
             </button>
           </div>
         </div>
