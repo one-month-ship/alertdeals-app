@@ -1,10 +1,13 @@
 import {
+  adPriceHistory as adPriceHistoryTable,
   ads as adsTable,
   brands as brandsTable,
   getDBAdminClient,
   getTableColumns,
+  inArray,
   sql,
   TAdInsert,
+  TAdPriceHistoryInsert,
   TAdReferenceData,
   vehicleModels as vehicleModelsTable,
 } from '@alertdeals/db';
@@ -203,16 +206,47 @@ const saveAdsFromLobstr = async (runId: string): Promise<void> => {
     return;
   }
 
-  await db
-    .insert(adsTable)
-    .values(adsToPersist)
-    .onConflictDoUpdate({
-      target: [adsTable.originalAdId],
-      set: setAdUpdateOnConflict,
-    })
-    .returning();
+  await db.transaction(async (tx) => {
+    const originalAdIds = adsToPersist.map((a) => a.originalAdId);
+    const previousRows = await tx
+      .select({ originalAdId: adsTable.originalAdId, price: adsTable.price })
+      .from(adsTable)
+      .where(inArray(adsTable.originalAdId, originalAdIds));
+    const previousPriceByOriginalAdId = new Map(
+      previousRows.map((row) => [row.originalAdId, row.price]),
+    );
 
-  console.log(`[lobstr] run ${runId}: upserted ${adsToPersist.length} ads`);
+    const upserted = await tx
+      .insert(adsTable)
+      .values(adsToPersist)
+      .onConflictDoUpdate({
+        target: [adsTable.originalAdId],
+        set: setAdUpdateOnConflict,
+      })
+      .returning({
+        id: adsTable.id,
+        originalAdId: adsTable.originalAdId,
+        price: adsTable.price,
+      });
+
+    const priceHistoryRows: TAdPriceHistoryInsert[] = [];
+    for (const row of upserted) {
+      const previousPrice = previousPriceByOriginalAdId.get(row.originalAdId);
+      const isNewAd = previousPrice === undefined;
+      const priceChanged = !isNewAd && previousPrice !== row.price;
+      if (isNewAd || priceChanged) {
+        priceHistoryRows.push({ adId: row.id, price: row.price });
+      }
+    }
+
+    if (priceHistoryRows.length > 0) {
+      await tx.insert(adPriceHistoryTable).values(priceHistoryRows);
+    }
+
+    console.log(
+      `[lobstr] run ${runId}: upserted ${upserted.length} ads, logged ${priceHistoryRows.length} price history rows`,
+    );
+  });
 };
 
 const getResultsFromRun = async (runId: string): Promise<Response> => {

@@ -12,6 +12,7 @@ import {
   smallint,
   smallserial,
   text,
+  timestamp,
   unique,
   uuid,
   varchar,
@@ -332,7 +333,35 @@ export const fuels = pgTable(
 );
 export type TFuel = InferSelectModel<typeof fuels>;
 
-export const adsRelations = relations(ads, ({ one }) => ({
+export const adPriceHistory = pgTable(
+  'ad_price_history',
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    adId: uuid('ad_id')
+      .references(() => ads.id, { onDelete: 'cascade' })
+      .notNull(),
+    price: real().notNull(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('ad_price_history_ad_recorded_idx').on(table.adId, table.recordedAt.desc()),
+    pgPolicy('enable read for authenticated users', {
+      as: 'permissive',
+      for: 'select',
+      to: authenticatedRole,
+      using: sql`true`,
+    }),
+  ],
+);
+
+export type TAdPriceHistory = InferSelectModel<typeof adPriceHistory>;
+export type TAdPriceHistoryInsert = InferInsertModel<typeof adPriceHistory>;
+
+export const adPriceHistoryRelations = relations(adPriceHistory, ({ one }) => ({
+  ad: one(ads, { fields: [adPriceHistory.adId], references: [ads.id] }),
+}));
+
+export const adsRelations = relations(ads, ({ one, many }) => ({
   type: one(adTypes, { fields: [ads.typeId], references: [adTypes.id] }),
   subtype: one(adSubTypes, { fields: [ads.subtypeId], references: [adSubTypes.id] }),
   drivingLicence: one(drivingLicences, {
@@ -359,6 +388,7 @@ export const adsRelations = relations(ads, ({ one }) => ({
     references: [marketPositions.id],
   }),
   fuel: one(fuels, { fields: [ads.fuelId], references: [fuels.id] }),
+  priceHistory: many(adPriceHistory),
 }));
 
 export type TAd = InferSelectModel<typeof ads> & {
