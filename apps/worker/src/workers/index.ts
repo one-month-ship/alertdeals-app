@@ -10,6 +10,7 @@ import { Worker } from 'bullmq';
 import { RETRY_CONFIG } from '../config/index.js';
 import { QUEUE_NAMES } from '../queues/index.js';
 import { connection } from '../redis.js';
+import { adClassificationWorker } from './ad-classification.js';
 import { scrapingWorker } from './scraping.js';
 
 export async function startAllWorkers(): Promise<Worker[]> {
@@ -17,6 +18,9 @@ export async function startAllWorkers(): Promise<Worker[]> {
     new Worker(QUEUE_NAMES.SCRAPING, scrapingWorker, {
       connection,
       ...RETRY_CONFIG.SCRAPING,
+    }),
+    new Worker(QUEUE_NAMES.AD_CLASSIFICATION, adClassificationWorker, {
+      connection,
     }),
   ];
 }

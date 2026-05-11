@@ -15,6 +15,7 @@ import {
   vehicleModels as vehicleModelsTable,
 } from '@alertdeals/db';
 import { EAdGoodDeal, parsePhoneNumberWithError } from '@alertdeals/shared';
+import { adClassificationQueue } from '../queues/index.js';
 import { customParseInt } from '../utils/general.utils.js';
 import { fetchAllReferenceData } from './ad.service.js';
 
@@ -219,6 +220,10 @@ const saveAdsFromLobstr = async (runId: string): Promise<void> => {
     return;
   }
 
+  // Declared outside the transaction so we can enqueue classification jobs AFTER it commits
+  // (avoids pushing jobs whose rows were rolled back on error).
+  const newlyInsertedAds: { id: string; description: string | null }[] = [];
+
   await db.transaction(async (tx) => {
     const originalAdIds = adsToPersist.map((a) => a.originalAdId);
     const previousRows = await tx
@@ -243,6 +248,7 @@ const saveAdsFromLobstr = async (runId: string): Promise<void> => {
         originalAdId: adsTable.originalAdId,
         price: adsTable.price,
         lastPublicationDate: adsTable.lastPublicationDate,
+        description: adsTable.description,
       });
 
     const priceHistoryRows: TAdPriceHistoryInsert[] = [];
@@ -262,6 +268,8 @@ const saveAdsFromLobstr = async (runId: string): Promise<void> => {
         if (newDate > prevDate) {
           republishedAdIds.push(row.id);
         }
+      } else {
+        newlyInsertedAds.push({ id: row.id, description: row.description });
       }
     }
 
@@ -331,6 +339,16 @@ const saveAdsFromLobstr = async (runId: string): Promise<void> => {
         `${soldRows.length} marked sold, market medians refreshed`,
     );
   });
+
+  // Enqueue LLM classification for new ads only (existing ads keep their previous classification).
+  // Stable jobId prevents duplicates if the same batch is re-processed.
+  for (const ad of newlyInsertedAds) {
+    await adClassificationQueue.add(
+      'classify',
+      { adId: ad.id, description: ad.description },
+      { jobId: `classify-${ad.id}` },
+    );
+  }
 };
 
 const getResultsFromRun = async (runId: string): Promise<Response> => {

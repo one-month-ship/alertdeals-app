@@ -5,6 +5,7 @@ import {
   doublePrecision,
   index,
   integer,
+  pgEnum,
   pgPolicy,
   pgTable,
   real,
@@ -18,6 +19,13 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { authenticatedRole } from 'drizzle-orm/supabase';
+
+export const adRiskLevelEnum = pgEnum('ad_risk_level', [
+  'none',
+  'minor',
+  'major',
+  'administrative',
+]);
 
 export const ads = pgTable(
   'ads',
@@ -79,6 +87,8 @@ export const ads = pgTable(
     otherSpecifications: text('other_specifications'),
     technicalInspectionYear: smallint('technical_inspection_year'),
     goodDealName: text('good_deal_name'),
+    descriptionRiskLevel: adRiskLevelEnum('description_risk_level'),
+    descriptionRiskReason: text('description_risk_reason'),
   },
   (table) => [
     index("ads_brand_id_idx").on(table.brandId),
@@ -102,6 +112,7 @@ export const ads = pgTable(
     index("ads_model_year_idx").on(table.modelYear),
     index("ads_last_publication_date_idx").on(table.lastPublicationDate),
     index("ads_sold_at_idx").on(table.soldAt),
+    index("ads_description_risk_level_idx").on(table.descriptionRiskLevel),
     pgPolicy('Enable read access for authenticated users', {
       as: 'permissive',
       for: 'select',
