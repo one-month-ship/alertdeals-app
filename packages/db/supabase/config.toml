@@ -147,16 +147,9 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://127.0.0.1:5100"
+site_url = "env(NEXT_PUBLIC_SITE_URL)"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = [
-  "http://127.0.0.1:5100/api/auth/callback",
-  "http://127.0.0.1:5100/alerts/new",
-  "http://127.0.0.1:5100/hot-deals",
-  "http://localhost:5100/api/auth/callback",
-  "http://localhost:5100/alerts/new",
-  "http://localhost:5100/hot-deals",
-]
+additional_redirect_urls = ["env(NEXT_PUBLIC_SITE_URL_WILDCARD)"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to the local API URL (http://127.0.0.1:<port>/auth/v1).
@@ -326,7 +319,7 @@ client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
 # DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
 secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
 # Overrides the default auth redirectUrl.
-redirect_uri = ""
+redirect_uri = "http://127.0.0.1:54521/auth/v1/callback"
 # Overrides the default auth provider URL.
 url = ""
 # Required for local sign in with Google auth.
