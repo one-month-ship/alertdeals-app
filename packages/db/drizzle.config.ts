@@ -8,9 +8,6 @@ export default {
   dbCredentials: {
     url: process.env.SUPABASE_DATABASE_URL ?? '',
   },
-  migrations: {
-    prefix: 'supabase',
-  },
   strict: true,
   verbose: true,
   entities: {

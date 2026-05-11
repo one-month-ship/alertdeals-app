@@ -1,5 +1,5 @@
 import { pages } from '@/config/routes';
-import { type CookieOptions, createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 const PROTECTED_PREFIXES = [
@@ -44,6 +44,7 @@ export async function updateSession(request: NextRequest) {
   const isAuthRoute = pathname === pages.login || pathname.startsWith('/api/auth');
   const isHome = pathname === pages.home;
 
+  console.log(user)
   if (isHome) {
     return NextResponse.redirect(
       new URL(user ? pages.hotDeals : pages.login, request.url),

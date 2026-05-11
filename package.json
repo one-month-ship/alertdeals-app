@@ -13,6 +13,11 @@
     "dev:web": "pnpm _with-env-dev turbo run dev --filter=@alertdeals/web",
     "dev:worker": "pnpm _with-env-dev turbo run dev --filter=@alertdeals/worker",
     "build": "pnpm _with-env-prod turbo run build",
+    "build:web": "pnpm _with-env-prod turbo run build --filter=@alertdeals/web",
+    "build:worker": "pnpm _with-env-prod turbo run build --filter=@alertdeals/worker",
+    "start:web:test": "pnpm _with-env-prod pnpm --filter @alertdeals/web start:test",
+    "start:web": "pnpm _with-env-prod pnpm --filter @alertdeals/web start",
+    "start:worker": "pnpm _with-env-prod pnpm --filter @alertdeals/worker start",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "db:start": "pnpm _with-env-dev supabase --workdir packages/db start",
@@ -22,7 +27,8 @@
     "db:reset": "pnpm _with-env-dev bash scripts/db-reset.sh",
     "db:dump": "bash scripts/db-dump.sh",
     "db:refresh-seed": "bash scripts/db-refresh-seed.sh",
-    "db:generate": "pnpm _with-env-dev pnpm --filter @alertdeals/db generate",
+    "db:generate": "pnpm _with-env-dev pnpm --filter @alertdeals/db db:generate",
+    "db:drop": "pnpm --filter @alertdeals/db db:drop",
     "db:push": "pnpm _with-env-dev bash -c 'if [[ \"$SUPABASE_DATABASE_URL\" != *127.0.0.1* ]]; then echo \"❌ db:push only works on local DB\"; exit 1; fi && pnpm --filter @alertdeals/db push'",
     "db:link:prod": "supabase --workdir packages/db link --project-ref pqyifeejkwjgzmynolgy",
     "db:push:prod": "pnpm db:link:prod && supabase --workdir packages/db db push",
@@ -31,8 +37,12 @@
     "supabase:functions:serve": "pnpm _with-env-dev supabase --workdir packages/db functions serve"
   },
   "devDependencies": {
+    "tsx": "^4.21.0",
+    "@types/node": "^25.2.2",
+    "eslint": "^9",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.0",
     "@dotenvx/dotenvx": "^1.63.0",
-    "@types/node": "^22.10.5",
     "turbo": "^2.3.3",
     "typescript": "^5.7.3"
   }
