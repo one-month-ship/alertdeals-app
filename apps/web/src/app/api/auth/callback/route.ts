@@ -58,7 +58,6 @@ async function handleAuthSuccess(origin: string): Promise<NextResponse> {
     .limit(1);
 
   if (!account) {
-    console.error('[auth/callback] account not found', { userId: user.id });
     await supabase.auth.signOut();
     return redirectToLogin(origin, USER_ERRORS.ACCOUNT_FETCH);
   }
@@ -121,9 +120,5 @@ export async function GET(request: Request) {
     return handleAuthSuccess(origin);
   }
 
-  // Nothing to handle — unexpected hit
-  console.error('[auth/callback] hit with no code, token_hash, or error', {
-    url: request.url,
-  });
   return redirectToLogin(origin, USER_ERRORS.GENERIC);
 }
