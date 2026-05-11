@@ -284,11 +284,51 @@ const saveAdsFromLobstr = async (runId: string): Promise<void> => {
       .where(and(lt(adsTable.lastSeenAt, batchStartTime), isNull(adsTable.soldAt)))
       .returning({ id: adsTable.id });
 
+    await tx.execute(sql`
+      WITH market AS (
+        SELECT
+          brand_id,
+          model_id,
+          FLOOR(model_year::int / 5) * 5 AS year_bucket,
+          PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY price) AS median_price
+        FROM ads
+        WHERE brand_id IS NOT NULL
+          AND model_id IS NOT NULL
+          AND model_year IS NOT NULL
+          AND price > 0
+        GROUP BY brand_id, model_id, FLOOR(model_year::int / 5) * 5
+        HAVING COUNT(*) >= 20
+      )
+      UPDATE ads SET
+        market_median_price = market.median_price,
+        market_price = market.median_price,
+        margin_amount = market.median_price - ads.price,
+        margin_percentage = CASE
+          WHEN ads.price > 0 THEN (market.median_price - ads.price) / ads.price
+          ELSE NULL
+        END
+      FROM market
+      WHERE ads.brand_id = market.brand_id
+        AND ads.model_id = market.model_id
+        AND FLOOR(ads.model_year::int / 5) * 5 = market.year_bucket
+    `);
+
+    await tx.execute(sql`
+      UPDATE ads SET good_deal_name = ${EAdGoodDeal.GOOD}
+      WHERE market_median_price IS NOT NULL
+        AND good_deal_name IS DISTINCT FROM ${EAdGoodDeal.VERY_GOOD}
+        AND (
+          (market_median_price < 10000 AND margin_amount >= 2500)
+          OR (market_median_price BETWEEN 10000 AND 25000 AND margin_amount >= 3000)
+          OR (market_median_price > 25000 AND margin_amount >= 3500)
+        )
+    `);
+
     console.log(
       `[lobstr] run ${runId}: upserted ${upserted.length} ads, ` +
         `${priceHistoryRows.length} price history rows, ` +
         `${republishedAdIds.length} republications, ` +
-        `${soldRows.length} marked sold`,
+        `${soldRows.length} marked sold, market medians refreshed`,
     );
   });
 };
