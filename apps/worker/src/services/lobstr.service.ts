@@ -1,10 +1,13 @@
 import {
   adPriceHistory as adPriceHistoryTable,
   ads as adsTable,
+  and,
   brands as brandsTable,
   getDBAdminClient,
   getTableColumns,
   inArray,
+  isNull,
+  lt,
   sql,
   TAdInsert,
   TAdPriceHistoryInsert,
@@ -17,10 +20,18 @@ import { fetchAllReferenceData } from './ad.service.js';
 
 const LOBSTR_PLATFORM_FIELD = 'lobstrValue' as const;
 
-// Build the `set` payload for upserts: every column except id/createdAt/originalAdId
+// Build the `set` payload for upserts: every column except id/createdAt/originalAdId/repostCount
 // is overwritten with the incoming row's value (`excluded.<col>` in Postgres).
+// `repostCount` is excluded so the counter is preserved across upserts; it's bumped separately
+// after the upsert when we detect a republication.
 const allColumns = getTableColumns(adsTable);
-const { id: _id, createdAt: _createdAt, originalAdId: _origId, ...columnsToUpdate } = allColumns;
+const {
+  id: _id,
+  createdAt: _createdAt,
+  originalAdId: _origId,
+  repostCount: _repostCount,
+  ...columnsToUpdate
+} = allColumns;
 
 const setAdUpdateOnConflict = Object.fromEntries(
   Object.entries(columnsToUpdate).map(([key, column]) => [
@@ -190,7 +201,9 @@ const saveAdsFromLobstr = async (runId: string): Promise<void> => {
   // Load all lookup tables once into Maps for O(1) lookup during mapping.
   const referenceData = await fetchAllReferenceData(db, LOBSTR_PLATFORM_FIELD);
 
-  const getAdsData = ads.map((ad) => getAdData(db, ad, referenceData));
+  const batchStartTime = new Date();
+
+  const getAdsData = ads.map((ad) => getAdData(db, ad, referenceData, batchStartTime));
   const adsToPersistPromise = await Promise.allSettled(getAdsData);
 
   // Drop any ad whose mapping rejected or produced no `typeId` (which is required).
@@ -209,12 +222,14 @@ const saveAdsFromLobstr = async (runId: string): Promise<void> => {
   await db.transaction(async (tx) => {
     const originalAdIds = adsToPersist.map((a) => a.originalAdId);
     const previousRows = await tx
-      .select({ originalAdId: adsTable.originalAdId, price: adsTable.price })
+      .select({
+        originalAdId: adsTable.originalAdId,
+        price: adsTable.price,
+        lastPublicationDate: adsTable.lastPublicationDate,
+      })
       .from(adsTable)
       .where(inArray(adsTable.originalAdId, originalAdIds));
-    const previousPriceByOriginalAdId = new Map(
-      previousRows.map((row) => [row.originalAdId, row.price]),
-    );
+    const previousByOriginalAdId = new Map(previousRows.map((row) => [row.originalAdId, row]));
 
     const upserted = await tx
       .insert(adsTable)
@@ -227,15 +242,26 @@ const saveAdsFromLobstr = async (runId: string): Promise<void> => {
         id: adsTable.id,
         originalAdId: adsTable.originalAdId,
         price: adsTable.price,
+        lastPublicationDate: adsTable.lastPublicationDate,
       });
 
     const priceHistoryRows: TAdPriceHistoryInsert[] = [];
+    const republishedAdIds: string[] = [];
     for (const row of upserted) {
-      const previousPrice = previousPriceByOriginalAdId.get(row.originalAdId);
-      const isNewAd = previousPrice === undefined;
-      const priceChanged = !isNewAd && previousPrice !== row.price;
+      const previous = previousByOriginalAdId.get(row.originalAdId);
+      const isNewAd = previous === undefined;
+
+      const priceChanged = !isNewAd && previous.price !== row.price;
       if (isNewAd || priceChanged) {
         priceHistoryRows.push({ adId: row.id, price: row.price });
+      }
+
+      if (!isNewAd) {
+        const prevDate = new Date(previous.lastPublicationDate).getTime();
+        const newDate = new Date(row.lastPublicationDate).getTime();
+        if (newDate > prevDate) {
+          republishedAdIds.push(row.id);
+        }
       }
     }
 
@@ -243,8 +269,26 @@ const saveAdsFromLobstr = async (runId: string): Promise<void> => {
       await tx.insert(adPriceHistoryTable).values(priceHistoryRows);
     }
 
+    if (republishedAdIds.length > 0) {
+      await tx
+        .update(adsTable)
+        .set({ repostCount: sql`${adsTable.repostCount} + 1` })
+        .where(inArray(adsTable.id, republishedAdIds));
+    }
+
+    // Any unsold ad whose lastSeenAt is older than this batch wasn't returned by Lobstr
+    // this run → assume it's gone from LBC and mark it sold (estimated date = batch time).
+    const soldRows = await tx
+      .update(adsTable)
+      .set({ soldAt: batchStartTime })
+      .where(and(lt(adsTable.lastSeenAt, batchStartTime), isNull(adsTable.soldAt)))
+      .returning({ id: adsTable.id });
+
     console.log(
-      `[lobstr] run ${runId}: upserted ${upserted.length} ads, logged ${priceHistoryRows.length} price history rows`,
+      `[lobstr] run ${runId}: upserted ${upserted.length} ads, ` +
+        `${priceHistoryRows.length} price history rows, ` +
+        `${republishedAdIds.length} republications, ` +
+        `${soldRows.length} marked sold`,
     );
   });
 };
@@ -271,6 +315,7 @@ const getAdData = async (
   db: ReturnType<typeof getDBAdminClient>,
   ad: TAdFromLobstr,
   referenceData: TAdReferenceData,
+  batchStartTime: Date,
 ): Promise<TAdInsert> => {
   const { details: adDetails, more_details: adMoreDetails } = ad;
 
@@ -321,10 +366,9 @@ const getAdData = async (
     entryYear: customParseInt(
       adDetails['Date de première mise en circulation'].slice(-4),
     ),
-    hasBeenReposted: ad.last_publication_date
-      ? ad.first_publication_date !== ad.last_publication_date
-      : false,
     mileage: customParseInt(adDetails['Kilométrage']),
+    lastSeenAt: batchStartTime,
+    soldAt: null,
     priceHasDropped: adMoreDetails.old_price
       ? ad.price < parseInt(adMoreDetails.old_price)
       : false,
