@@ -1,0 +1,1538 @@
+{
+  "id": "9258f37d-518a-486c-9555-3ea683ba691e",
+  "prevId": "8feb3dd6-f360-4d73-9ff6-485adfc1b78d",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.accounts": {
+      "name": "accounts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "has_subscription": {
+          "name": "has_subscription",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "confirmed_by_admin": {
+          "name": "confirmed_by_admin",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "is_first_connexion": {
+          "name": "is_first_connexion",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "enable all for account owners": {
+          "name": "enable all for account owners",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"accounts\".\"id\"",
+          "withCheck": "(select auth.uid()) = \"accounts\".\"id\""
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ad_sub_types": {
+      "name": "ad_sub_types",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "smallserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ad_type_id": {
+          "name": "ad_type_id",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lbc_value": {
+          "name": "lbc_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lobstr_value": {
+          "name": "lobstr_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ad_sub_types_ad_type_id_ad_types_id_fk": {
+          "name": "ad_sub_types_ad_type_id_ad_types_id_fk",
+          "tableFrom": "ad_sub_types",
+          "tableTo": "ad_types",
+          "columnsFrom": [
+            "ad_type_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_subtype": {
+          "name": "unique_subtype",
+          "nullsNotDistinct": false,
+          "columns": [
+            "ad_type_id",
+            "name"
+          ]
+        }
+      },
+      "policies": {
+        "enable read for authenticated users": {
+          "name": "enable read for authenticated users",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ad_types": {
+      "name": "ad_types",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "smallserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lbc_value": {
+          "name": "lbc_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lobstr_value": {
+          "name": "lobstr_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "ad_type_name_unique": {
+          "name": "ad_type_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {
+        "enable read for authenticated users": {
+          "name": "enable read for authenticated users",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ads": {
+      "name": "ads",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "type_id": {
+          "name": "type_id",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subtype_id": {
+          "name": "subtype_id",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "driving_licence_id": {
+          "name": "driving_licence_id",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gear_box_id": {
+          "name": "gear_box_id",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vehicle_seats_id": {
+          "name": "vehicle_seats_id",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vehicle_state_id": {
+          "name": "vehicle_state_id",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "location_id": {
+          "name": "location_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "brand_id": {
+          "name": "brand_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model_id": {
+          "name": "model_id",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "market_position_id": {
+          "name": "market_position_id",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fuel_id": {
+          "name": "fuel_id",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "original_ad_id": {
+          "name": "original_ad_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "picture": {
+          "name": "picture",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pictures": {
+          "name": "pictures",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "price": {
+          "name": "price",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "has_been_reposted": {
+          "name": "has_been_reposted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "has_been_boosted": {
+          "name": "has_been_boosted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "is_urgent": {
+          "name": "is_urgent",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "model_year": {
+          "name": "model_year",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "initial_publication_date": {
+          "name": "initial_publication_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_publication_date": {
+          "name": "last_publication_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mileage": {
+          "name": "mileage",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "price_has_dropped": {
+          "name": "price_has_dropped",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "price_min": {
+          "name": "price_min",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "price_max": {
+          "name": "price_max",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "market_median_price": {
+          "name": "market_median_price",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "market_price": {
+          "name": "market_price",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "margin_amount": {
+          "name": "margin_amount",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "margin_percentage": {
+          "name": "margin_percentage",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "margin_amount_min": {
+          "name": "margin_amount_min",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "margin_amount_max": {
+          "name": "margin_amount_max",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "margin_percentage_min": {
+          "name": "margin_percentage_min",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "margin_percentage_max": {
+          "name": "margin_percentage_max",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_low_price": {
+          "name": "is_low_price",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "phone_number": {
+          "name": "phone_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_whatsapp_phone": {
+          "name": "is_whatsapp_phone",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "owner_name": {
+          "name": "owner_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entry_year": {
+          "name": "entry_year",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "has_phone": {
+          "name": "has_phone",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "is_mobile_phone": {
+          "name": "is_mobile_phone",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "accept_salesmen": {
+          "name": "accept_salesmen",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "equipments": {
+          "name": "equipments",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "other_specifications": {
+          "name": "other_specifications",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "technical_inspection_year": {
+          "name": "technical_inspection_year",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "good_deal_name": {
+          "name": "good_deal_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "ads_brand_id_idx": {
+          "name": "ads_brand_id_idx",
+          "columns": [
+            {
+              "expression": "brand_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_model_id_idx": {
+          "name": "ads_model_id_idx",
+          "columns": [
+            {
+              "expression": "model_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_vehicle_state_id_idx": {
+          "name": "ads_vehicle_state_id_idx",
+          "columns": [
+            {
+              "expression": "vehicle_state_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_type_id_idx": {
+          "name": "ads_type_id_idx",
+          "columns": [
+            {
+              "expression": "type_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_subtype_id_idx": {
+          "name": "ads_subtype_id_idx",
+          "columns": [
+            {
+              "expression": "subtype_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_location_id_idx": {
+          "name": "ads_location_id_idx",
+          "columns": [
+            {
+              "expression": "location_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_has_phone_idx": {
+          "name": "ads_has_phone_idx",
+          "columns": [
+            {
+              "expression": "has_phone",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_created_at_idx": {
+          "name": "ads_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_price_idx": {
+          "name": "ads_price_idx",
+          "columns": [
+            {
+              "expression": "price",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_price_min_idx": {
+          "name": "ads_price_min_idx",
+          "columns": [
+            {
+              "expression": "price_min",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_price_max_idx": {
+          "name": "ads_price_max_idx",
+          "columns": [
+            {
+              "expression": "price_max",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_title_idx": {
+          "name": "ads_title_idx",
+          "columns": [
+            {
+              "expression": "title",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_margin_amount_min": {
+          "name": "ads_margin_amount_min",
+          "columns": [
+            {
+              "expression": "margin_amount_min",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_margin_amount_max": {
+          "name": "ads_margin_amount_max",
+          "columns": [
+            {
+              "expression": "margin_amount_max",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_margin_percent_min": {
+          "name": "ads_margin_percent_min",
+          "columns": [
+            {
+              "expression": "margin_percentage_min",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_margin_percent_max": {
+          "name": "ads_margin_percent_max",
+          "columns": [
+            {
+              "expression": "margin_percentage_max",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_margin_percentage_idx": {
+          "name": "ads_margin_percentage_idx",
+          "columns": [
+            {
+              "expression": "margin_percentage",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_fuel_id_idx": {
+          "name": "ads_fuel_id_idx",
+          "columns": [
+            {
+              "expression": "fuel_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_model_year_idx": {
+          "name": "ads_model_year_idx",
+          "columns": [
+            {
+              "expression": "model_year",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ads_last_publication_date_idx": {
+          "name": "ads_last_publication_date_idx",
+          "columns": [
+            {
+              "expression": "last_publication_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ads_type_id_ad_types_id_fk": {
+          "name": "ads_type_id_ad_types_id_fk",
+          "tableFrom": "ads",
+          "tableTo": "ad_types",
+          "columnsFrom": [
+            "type_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ads_subtype_id_ad_sub_types_id_fk": {
+          "name": "ads_subtype_id_ad_sub_types_id_fk",
+          "tableFrom": "ads",
+          "tableTo": "ad_sub_types",
+          "columnsFrom": [
+            "subtype_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ads_driving_licence_id_driving_licences_id_fk": {
+          "name": "ads_driving_licence_id_driving_licences_id_fk",
+          "tableFrom": "ads",
+          "tableTo": "driving_licences",
+          "columnsFrom": [
+            "driving_licence_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ads_gear_box_id_gear_boxes_id_fk": {
+          "name": "ads_gear_box_id_gear_boxes_id_fk",
+          "tableFrom": "ads",
+          "tableTo": "gear_boxes",
+          "columnsFrom": [
+            "gear_box_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ads_vehicle_seats_id_vehicle_seats_id_fk": {
+          "name": "ads_vehicle_seats_id_vehicle_seats_id_fk",
+          "tableFrom": "ads",
+          "tableTo": "vehicle_seats",
+          "columnsFrom": [
+            "vehicle_seats_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ads_vehicle_state_id_vehicle_states_id_fk": {
+          "name": "ads_vehicle_state_id_vehicle_states_id_fk",
+          "tableFrom": "ads",
+          "tableTo": "vehicle_states",
+          "columnsFrom": [
+            "vehicle_state_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ads_location_id_locations_id_fk": {
+          "name": "ads_location_id_locations_id_fk",
+          "tableFrom": "ads",
+          "tableTo": "locations",
+          "columnsFrom": [
+            "location_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ads_brand_id_brands_id_fk": {
+          "name": "ads_brand_id_brands_id_fk",
+          "tableFrom": "ads",
+          "tableTo": "brands",
+          "columnsFrom": [
+            "brand_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ads_model_id_vehicle_models_id_fk": {
+          "name": "ads_model_id_vehicle_models_id_fk",
+          "tableFrom": "ads",
+          "tableTo": "vehicle_models",
+          "columnsFrom": [
+            "model_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ads_market_position_id_market_positions_id_fk": {
+          "name": "ads_market_position_id_market_positions_id_fk",
+          "tableFrom": "ads",
+          "tableTo": "market_positions",
+          "columnsFrom": [
+            "market_position_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ads_fuel_id_fuels_id_fk": {
+          "name": "ads_fuel_id_fuels_id_fk",
+          "tableFrom": "ads",
+          "tableTo": "fuels",
+          "columnsFrom": [
+            "fuel_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "ads_original_ad_id_unique": {
+          "name": "ads_original_ad_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "original_ad_id"
+          ]
+        }
+      },
+      "policies": {
+        "Enable read access for authenticated users": {
+          "name": "Enable read access for authenticated users",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.brands": {
+      "name": "brands",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "smallserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lbc_value": {
+          "name": "lbc_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lobstr_value": {
+          "name": "lobstr_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "brand_name_unique": {
+          "name": "brand_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {
+        "enable read for authenticated users": {
+          "name": "enable read for authenticated users",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.driving_licences": {
+      "name": "driving_licences",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "smallserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lbc_value": {
+          "name": "lbc_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lobstr_value": {
+          "name": "lobstr_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "driving_licence_name_unique": {
+          "name": "driving_licence_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {
+        "enable read for authenticated users": {
+          "name": "enable read for authenticated users",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.fuels": {
+      "name": "fuels",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "smallserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lbc_value": {
+          "name": "lbc_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lobstr_value": {
+          "name": "lobstr_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "fuel_name_unique": {
+          "name": "fuel_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {
+        "enable read for authenticated users": {
+          "name": "enable read for authenticated users",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.gear_boxes": {
+      "name": "gear_boxes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "smallserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lbc_value": {
+          "name": "lbc_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lobstr_value": {
+          "name": "lobstr_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "gear_box_name_unique": {
+          "name": "gear_box_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {
+        "enable read for authenticated users": {
+          "name": "enable read for authenticated users",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.locations": {
+      "name": "locations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "zipcode": {
+          "name": "zipcode",
+          "type": "varchar(5)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lat": {
+          "name": "lat",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lng": {
+          "name": "lng",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "locations_geo_idx": {
+          "name": "locations_geo_idx",
+          "columns": [
+            {
+              "expression": "(ST_MakePoint(\"lng\", \"lat\")::geography)",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gist",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "zipcode_name_unique": {
+          "name": "zipcode_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name",
+            "zipcode"
+          ]
+        }
+      },
+      "policies": {
+        "enable read for authenticated users": {
+          "name": "enable read for authenticated users",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.market_positions": {
+      "name": "market_positions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "smallserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lbc_value": {
+          "name": "lbc_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lobstr_value": {
+          "name": "lobstr_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "enable read for authenticated users": {
+          "name": "enable read for authenticated users",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.vehicle_models": {
+      "name": "vehicle_models",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "smallserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "brand_id": {
+          "name": "brand_id",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lbc_value": {
+          "name": "lbc_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lobstr_value": {
+          "name": "lobstr_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "vehicle_models_brand_id_brands_id_fk": {
+          "name": "vehicle_models_brand_id_brands_id_fk",
+          "tableFrom": "vehicle_models",
+          "tableTo": "brands",
+          "columnsFrom": [
+            "brand_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "vehicle_model_brand_name_unique": {
+          "name": "vehicle_model_brand_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "brand_id",
+            "name"
+          ]
+        }
+      },
+      "policies": {
+        "enable read for authenticated users": {
+          "name": "enable read for authenticated users",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.vehicle_seats": {
+      "name": "vehicle_seats",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "smallserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lbc_value": {
+          "name": "lbc_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lobstr_value": {
+          "name": "lobstr_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "vehicle_seats_name_unique": {
+          "name": "vehicle_seats_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {
+        "enable read for authenticated users": {
+          "name": "enable read for authenticated users",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.vehicle_states": {
+      "name": "vehicle_states",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "smallserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lbc_value": {
+          "name": "lbc_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lobstr_value": {
+          "name": "lobstr_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "vehicle_state_name_unique": {
+          "name": "vehicle_state_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {
+        "enable read for authenticated users": {
+          "name": "enable read for authenticated users",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
