@@ -3,7 +3,6 @@ import { connection } from '../redis.js';
 
 export const QUEUE_NAMES = {
   SCRAPING: 'scraping',
-  SCHEDULED_SCRAPING: 'scheduled-scraping',
 } as const;
 
 export const scrapingQueue = new Queue(QUEUE_NAMES.SCRAPING, {
@@ -14,17 +13,8 @@ export const scrapingQueue = new Queue(QUEUE_NAMES.SCRAPING, {
   },
 });
 
-export const scheduledScrapingQueue = new Queue(QUEUE_NAMES.SCHEDULED_SCRAPING, {
-  connection,
-  defaultJobOptions: {
-    removeOnComplete: 100,
-    removeOnFail: 1000,
-  },
-});
-
 export const queues = {
   [QUEUE_NAMES.SCRAPING]: scrapingQueue,
-  [QUEUE_NAMES.SCHEDULED_SCRAPING]: scheduledScrapingQueue,
 };
 
 export async function getQueueStats(queueName: string) {

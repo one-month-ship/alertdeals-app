@@ -1,12 +1,10 @@
 import { Worker } from 'bullmq';
 import express, { Request, Response } from 'express';
 import { Server } from 'http';
-import { queues, scheduledScrapingQueue } from './queues/index.js';
+import { queues } from './queues/index.js';
 import { connection } from './redis.js';
 import routes from './routes/index.js';
 import { startAllWorkers } from './workers/index.js';
-
-const NIGHTLY_SCRAPING_SCHEDULE = { pattern: '0 4 * * *', tz: 'Europe/Paris' };
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 4000);
@@ -45,15 +43,6 @@ app.use('/api', routes);
 
     workers = await startAllWorkers();
     console.log(`[api] ${workers.length} worker(s) started`);
-
-    await scheduledScrapingQueue.upsertJobScheduler(
-      'nightly-scraping-trigger',
-      NIGHTLY_SCRAPING_SCHEDULE,
-      { name: 'nightly-scraping-trigger', data: {} },
-    );
-    console.log(
-      `[api] nightly scraping scheduled: ${NIGHTLY_SCRAPING_SCHEDULE.pattern} (${NIGHTLY_SCRAPING_SCHEDULE.tz})`,
-    );
 
     server = app.listen(PORT, () => {
       console.log(`[api] listening on http://localhost:${PORT}`);
