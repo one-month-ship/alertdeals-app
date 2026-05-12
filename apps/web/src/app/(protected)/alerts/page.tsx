@@ -1,7 +1,15 @@
-const AlertsPage = () => (
-  <div>
-    <h1 className="text-2xl font-semibold">Alertes</h1>
-  </div>
-);
+import { AlertsView } from '@/components/alerts/alerts-view';
+import { createClient } from '@/lib/supabase/server';
+import { getAccountAlerts } from '@/services/alert.service';
+import { redirect } from 'next/navigation';
 
-export default AlertsPage;
+export default async function AlertsPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const alerts = await getAccountAlerts();
+  return <AlertsView alerts={alerts} />;
+}
