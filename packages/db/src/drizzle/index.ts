@@ -2,7 +2,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from '../schema';
 
-const databaseUrl = process.env.SUPABASE_DATABASE_URL;
+const databaseUrl = process.env.SUPABASE_DATABASE_URL || process.env.POSTGRES_URL;
 if (!databaseUrl) {
   throw new Error('SUPABASE_DATABASE_URL environment variable is not set');
 }
@@ -54,8 +54,9 @@ export {
   ne,
   notInArray,
   or,
-  sql,
+  sql
 } from 'drizzle-orm';
 
 export type { SQL } from 'drizzle-orm';
 export type { PgColumn } from 'drizzle-orm/pg-core';
+
