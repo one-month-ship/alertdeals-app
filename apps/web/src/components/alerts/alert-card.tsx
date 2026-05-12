@@ -237,7 +237,9 @@ export function AlertCard({ alert, onMutate }: Props) {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogCancel className="border-border bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                Annuler
+              </AlertDialogCancel>
               <AlertDialogAction onClick={handleDelete}>Supprimer</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
