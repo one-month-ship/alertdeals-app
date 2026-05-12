@@ -17,6 +17,7 @@
     "lint": "echo 'no lint configured'"
   },
   "dependencies": {
+    "@alertdeals/shared": "workspace:*",
     "@supabase/supabase-js": "^2.47.10",
     "drizzle-orm": "^0.38.3",
     "postgres": "^3.4.5"
