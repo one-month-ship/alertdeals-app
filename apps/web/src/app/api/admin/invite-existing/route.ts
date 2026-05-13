@@ -1,4 +1,4 @@
-import { pages } from "@/config/routes";
+import { apiRoutes } from "@/config/routes";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getSiteUrl } from "@/utils/get-site-url";
 import { accounts, eq, getDBAdminClient } from "@alertdeals/db";
@@ -21,7 +21,8 @@ export async function POST(req: Request) {
   if (!account) return Response.json({ error: "NO_ACCOUNT" }, { status: 401 });
 
   try {
-    await db.update(accounts)
+    await db
+      .update(accounts)
       .set({ confirmedByAdmin: true })
       .where(eq(accounts.email, email));
   } catch (error) {
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
   const { error } = await supabaseAdmin.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${getSiteUrl()}${pages.authCallback}`,
+      emailRedirectTo: `${getSiteUrl()}${apiRoutes.authAdminCallback}`,
       shouldCreateUser: false,
     },
   });

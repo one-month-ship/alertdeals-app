@@ -5,19 +5,24 @@
 
 export const pages = {
   // Public
-  home: '/',
-  login: '/login',
-  authCallback: '/api/auth/callback',
+  home: "/",
+  login: "/login",
+  authCallback: "/api/auth/callback",
 
   // Protected
-  hotDeals: '/hot-deals',
+  hotDeals: "/hot-deals",
   alerts: {
-    list: '/alerts',
-    new: '/alerts/new',
+    list: "/alerts",
+    new: "/alerts/new",
     edit: (id: string) => `/alerts/${id}/edit`,
   },
-  subscription: '/subscription',
-  account: '/account',
+  subscription: "/subscription",
+  account: "/account",
+} as const;
+
+export const apiRoutes = {
+  authCallback: "/api/auth/callback",
+  authAdminCallback: "/api/auth/callback/invited",
 } as const;
 
 type ExtractStaticRoutes<T> = T extends string

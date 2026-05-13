@@ -32,31 +32,13 @@ function redirectToLogin(origin: string, code: EAuthErrorCode) {
   );
 }
 
-async function handleAuthSuccess(
-  origin: string,
-  invitedByAdmin?: boolean,
-): Promise<NextResponse> {
-  console.log("[auth/callback] handleAuthSuccess called", {
-    origin,
-    invitedByAdmin,
-  });
-
+async function handleAuthSuccess(origin: string): Promise<NextResponse> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  console.log("[auth/callback] getUser result", {
-    userId: user?.id,
-    email: user?.email,
-  });
-
-  if (invitedByAdmin)
-    return NextResponse.redirect(`${origin}${pages.hotDeals}`);
-
-  if (!user) {
-    return redirectToLogin(origin, EAuthErrorCode.AUTH_ERROR);
-  }
+  if (!user) return redirectToLogin(origin, EAuthErrorCode.AUTH_ERROR);
 
   const db = getDBAdminClient();
   const [account] = await db
@@ -69,31 +51,16 @@ async function handleAuthSuccess(
     .where(eq(accounts.id, user.id))
     .limit(1);
 
-  console.log("[auth/callback] account lookup", {
-    userId: user.id,
-    account: account ?? "NOT_FOUND",
-  });
-
   if (!account) {
-    console.error("[auth/callback] no account row for user", user.id);
     await supabase.auth.signOut();
     return redirectToLogin(origin, EAuthErrorCode.ACCOUNT_FETCH_FAILED);
   }
 
   if (!account.confirmedByAdmin) {
-    console.error("[auth/callback] account not confirmed by admin", user.id);
     await supabase.auth.signOut();
     return redirectToLogin(origin, EAuthErrorCode.ACCOUNT_PENDING_VALIDATION);
   }
 
-  if (account.isFirstConnexion) {
-    await db
-      .update(accounts)
-      .set({ isFirstConnexion: false })
-      .where(eq(accounts.id, user.id));
-  }
-
-  console.log("[auth/callback] success, redirecting to hotDeals");
   return NextResponse.redirect(`${origin}${pages.hotDeals}`);
 }
 
@@ -106,26 +73,15 @@ export async function GET(request: Request) {
   const providerErrorDescription = searchParams.get("error_description");
   const invitedByAdmin = searchParams.has("invited");
 
-  console.log("[auth/callback] GET called", {
-    origin,
-    hasCode: !!code,
-    hasTokenHash: !!tokenHash,
-    type,
-    invitedByAdmin,
-    hasError: !!providerError,
-    fullUrl: request.url,
-  });
+  // No need to check, the user comes from an admin invite
+  if (invitedByAdmin)
+    return NextResponse.redirect(`${origin}${pages.hotDeals}`);
 
-  if (providerError || providerErrorDescription) {
-    console.error("[auth/callback] provider returned error", {
-      providerError,
-      providerErrorDescription,
-    });
+  if (providerError || providerErrorDescription)
     return redirectToLogin(
       origin,
       mapAuthError(providerErrorDescription || providerError),
     );
-  }
 
   // Magic link / invite flow
   if (tokenHash && type) {
@@ -135,11 +91,10 @@ export async function GET(request: Request) {
       type: type as "email" | "invite" | "magiclink" | "recovery",
     });
 
-    if (verifyError) {
-      console.error("[auth/callback] verifyOtp failed", verifyError);
+    if (verifyError)
       return redirectToLogin(origin, mapAuthError(verifyError.message));
-    }
-    return handleAuthSuccess(origin, invitedByAdmin);
+
+    return handleAuthSuccess(origin);
   }
 
   // OAuth flow (Google)
@@ -148,14 +103,10 @@ export async function GET(request: Request) {
     const { error: exchangeError } =
       await supabase.auth.exchangeCodeForSession(code);
 
-    if (exchangeError) {
-      console.error(
-        "[auth/callback] exchangeCodeForSession failed",
-        exchangeError,
-      );
+    if (exchangeError)
       return redirectToLogin(origin, mapAuthError(exchangeError.message));
-    }
-    return handleAuthSuccess(origin, invitedByAdmin);
+
+    return handleAuthSuccess(origin);
   }
 
   return redirectToLogin(origin, EAuthErrorCode.AUTH_ERROR);
