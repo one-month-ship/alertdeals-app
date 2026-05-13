@@ -1,4 +1,4 @@
-import { apiRoutes } from "@/config/routes";
+import { pages } from "@/config/routes";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getSiteUrl } from "@/utils/get-site-url";
 
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
     email,
     {
-      redirectTo: `${getSiteUrl()}${apiRoutes.authCallback}?invited=1`,
+      redirectTo: `${getSiteUrl()}${pages.authConfirm}`,
     },
   );
 

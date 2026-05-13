@@ -8,6 +8,7 @@ export const pages = {
   home: "/",
   login: "/login",
   authCallback: "/api/auth/callback",
+  authConfirm: "/auth/confirm",
 
   // Protected
   hotDeals: "/hot-deals",
