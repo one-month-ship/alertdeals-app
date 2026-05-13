@@ -1,4 +1,5 @@
 import { AlertForm } from '@/components/alerts/alert-form';
+import { pages } from '@/config/routes';
 import { createClient } from '@/lib/supabase/server';
 import {
   accounts,
@@ -14,7 +15,7 @@ export default async function NewAlertPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  if (!user) redirect(pages.login);
 
   const db = getDBAdminClient();
 

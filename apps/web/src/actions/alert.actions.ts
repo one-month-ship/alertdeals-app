@@ -1,31 +1,22 @@
 'use server';
 
 import { CACHE_TAGS } from '@/lib/cache.config';
-import { createClient } from '@/lib/supabase/server';
 import { getAccountAlerts } from '@/services/alert.service';
+import { getCurrentAccountId } from '@/services/account.service';
 import { alertFormSchema, createAlertSchema } from '@/validation-schemas';
 import { accounts, alerts, and, eq, getDBAdminClient } from '@alertdeals/db';
 import {
   EAccountErrorCode,
   EAlertErrorCode,
   EAlertStatus,
-  EGeneralErrorCode,
   ESubscriptionErrorCode,
+  EGeneralErrorCode,
   type TAlertStatus,
 } from '@alertdeals/shared';
 import { updateTag } from 'next/cache';
 
-async function getCurrentUserId() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error(EGeneralErrorCode.UNAUTHORIZED);
-  return user.id;
-}
-
 export async function createAlert(data: unknown) {
-  const accountId = await getCurrentUserId();
+  const accountId = await getCurrentAccountId();
 
   const parseResult = createAlertSchema.safeParse(data);
   if (!parseResult.success) {
@@ -83,7 +74,7 @@ export async function fetchAccountAlerts() {
 }
 
 export async function updateAlert(alertId: string, data: unknown) {
-  const accountId = await getCurrentUserId();
+  const accountId = await getCurrentAccountId();
 
   const parseResult = alertFormSchema.safeParse(data);
   if (!parseResult.success) {
@@ -125,7 +116,7 @@ export async function updateAlert(alertId: string, data: unknown) {
 }
 
 export async function updateAlertStatus(alertId: string, status: TAlertStatus) {
-  const accountId = await getCurrentUserId();
+  const accountId = await getCurrentAccountId();
   const db = getDBAdminClient();
 
   if (status === EAlertStatus.ACTIVE) {
@@ -155,7 +146,7 @@ export async function updateAlertStatus(alertId: string, status: TAlertStatus) {
 }
 
 export async function deleteAlert(alertId: string) {
-  const accountId = await getCurrentUserId();
+  const accountId = await getCurrentAccountId();
   const db = getDBAdminClient();
 
   const deleted = await db

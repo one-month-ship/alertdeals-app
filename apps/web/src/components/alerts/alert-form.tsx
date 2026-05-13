@@ -1,6 +1,7 @@
 'use client';
 
 import { createAlert, updateAlert } from '@/actions/alert.actions';
+import { pages } from '@/config/routes';
 import type { TAccountAlert } from '@/services/alert.service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -94,7 +95,7 @@ export function AlertForm({ brands, vehicleModels, isSubscribed, alert }: Props)
       toast.success(
         isEditMode ? 'Alerte mise à jour avec succès !' : 'Alerte créée avec succès !',
       );
-      router.push('/alerts');
+      router.push(pages.alerts.list);
     } catch (err) {
       setSubmitError(getErrorMessage(err));
     }
@@ -111,7 +112,7 @@ export function AlertForm({ brands, vehicleModels, isSubscribed, alert }: Props)
             La création d'alertes est réservée aux membres abonnés.
           </p>
           <Button asChild>
-            <a href="/subscription">S'abonner</a>
+            <a href={pages.subscription}>S'abonner</a>
           </Button>
         </CardContent>
       </Card>

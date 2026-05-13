@@ -1,4 +1,5 @@
 import { AlertForm } from '@/components/alerts/alert-form';
+import { pages } from '@/config/routes';
 import { createClient } from '@/lib/supabase/server';
 import { getAlertById } from '@/services/alert.service';
 import {
@@ -21,7 +22,7 @@ export default async function EditAlertPage({ params }: Props) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  if (!user) redirect(pages.login);
 
   const alert = await getAlertById(id).catch(() => null);
   if (!alert) notFound();

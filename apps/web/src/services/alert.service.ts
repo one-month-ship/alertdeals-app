@@ -1,17 +1,8 @@
 import { CACHE_TAGS } from '@/lib/cache.config';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentAccountId } from '@/services/account.service';
 import { alerts, and, eq, getDBAdminClient } from '@alertdeals/db';
-import { EAlertErrorCode, EGeneralErrorCode } from '@alertdeals/shared';
+import { EAlertErrorCode } from '@alertdeals/shared';
 import { cacheTag } from 'next/cache';
-
-async function getCurrentUserId() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error(EGeneralErrorCode.UNAUTHORIZED);
-  return user.id;
-}
 
 async function getCachedAccountAlerts(accountId: string) {
   'use cache';
@@ -30,7 +21,7 @@ async function getCachedAccountAlerts(accountId: string) {
 }
 
 export async function getAccountAlerts() {
-  const accountId = await getCurrentUserId();
+  const accountId = await getCurrentAccountId();
   return getCachedAccountAlerts(accountId);
 }
 
@@ -53,7 +44,7 @@ async function getCachedAlertById(alertId: string, accountId: string) {
 }
 
 export async function getAlertById(alertId: string) {
-  const accountId = await getCurrentUserId();
+  const accountId = await getCurrentAccountId();
   return getCachedAlertById(alertId, accountId);
 }
 
