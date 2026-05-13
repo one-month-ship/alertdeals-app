@@ -1,16 +1,17 @@
 'use server';
 
 import { CACHE_TAGS } from '@/lib/cache.config';
-import { getAccountAlerts } from '@/services/alert.service';
+import { createDrizzleSupabaseClient } from '@/lib/db';
 import { getCurrentAccountId } from '@/services/account.service';
+import { getAccountAlerts } from '@/services/alert.service';
 import { alertFormSchema, createAlertSchema } from '@/validation-schemas';
-import { accounts, alerts, and, eq, getDBAdminClient } from '@alertdeals/db';
+import { accounts, alerts, eq } from '@alertdeals/db';
 import {
   EAccountErrorCode,
   EAlertErrorCode,
   EAlertStatus,
-  ESubscriptionErrorCode,
   EGeneralErrorCode,
+  ESubscriptionErrorCode,
   type TAlertStatus,
 } from '@alertdeals/shared';
 import { updateTag } from 'next/cache';
@@ -24,41 +25,44 @@ export async function createAlert(data: unknown) {
   }
   const validated = parseResult.data;
 
-  const db = getDBAdminClient();
+  const db = await createDrizzleSupabaseClient();
 
-  const [account] = await db
-    .select({ hasSubscription: accounts.hasSubscription })
-    .from(accounts)
-    .where(eq(accounts.id, accountId))
-    .limit(1);
+  const created = await db.rls(async (tx) => {
+    const [account] = await tx
+      .select({ hasSubscription: accounts.hasSubscription })
+      .from(accounts)
+      .limit(1);
 
-  if (!account) {
-    throw new Error(EAccountErrorCode.ACCOUNT_NOT_FOUND);
-  }
-  if (!account.hasSubscription) {
-    throw new Error(ESubscriptionErrorCode.SUBSCRIPTION_REQUIRED);
-  }
+    if (!account) {
+      throw new Error(EAccountErrorCode.ACCOUNT_NOT_FOUND);
+    }
+    if (!account.hasSubscription) {
+      throw new Error(ESubscriptionErrorCode.SUBSCRIPTION_REQUIRED);
+    }
 
-  const [created] = await db
-    .insert(alerts)
-    .values({
-      accountId,
-      name: validated.name ?? null,
-      brandId: validated.brandId ?? null,
-      modelId: validated.modelId ?? null,
-      locationId: validated.locationId ?? null,
-      radiusInKm: validated.radiusInKm ?? null,
-      modelYearMin: validated.modelYearMin ?? null,
-      modelYearMax: validated.modelYearMax ?? null,
-      mileageMin: validated.mileageMin ?? null,
-      mileageMax: validated.mileageMax ?? null,
-      priceMin: validated.priceMin ?? null,
-      mode: validated.mode,
-      priceMax: validated.priceMax ?? null,
-      marginMinPercentage: validated.marginMinPercentage ?? null,
-      notificationChannels: validated.notificationChannels,
-    })
-    .returning({ id: alerts.id });
+    const [row] = await tx
+      .insert(alerts)
+      .values({
+        accountId,
+        name: validated.name ?? null,
+        brandId: validated.brandId ?? null,
+        modelId: validated.modelId ?? null,
+        locationId: validated.locationId ?? null,
+        radiusInKm: validated.radiusInKm ?? null,
+        modelYearMin: validated.modelYearMin ?? null,
+        modelYearMax: validated.modelYearMax ?? null,
+        mileageMin: validated.mileageMin ?? null,
+        mileageMax: validated.mileageMax ?? null,
+        priceMin: validated.priceMin ?? null,
+        mode: validated.mode,
+        priceMax: validated.priceMax ?? null,
+        marginMinPercentage: validated.marginMinPercentage ?? null,
+        notificationChannels: validated.notificationChannels,
+      })
+      .returning({ id: alerts.id });
+
+    return row;
+  });
 
   if (!created) {
     throw new Error(EAlertErrorCode.ALERT_SAVE_FAILED);
@@ -82,28 +86,31 @@ export async function updateAlert(alertId: string, data: unknown) {
   }
   const validated = parseResult.data;
 
-  const db = getDBAdminClient();
+  const db = await createDrizzleSupabaseClient();
 
-  const [updated] = await db
-    .update(alerts)
-    .set({
-      name: validated.name ?? null,
-      brandId: validated.brandId ?? null,
-      modelId: validated.modelId ?? null,
-      locationId: validated.locationId ?? null,
-      radiusInKm: validated.radiusInKm ?? null,
-      modelYearMin: validated.modelYearMin ?? null,
-      modelYearMax: validated.modelYearMax ?? null,
-      mileageMin: validated.mileageMin ?? null,
-      mileageMax: validated.mileageMax ?? null,
-      priceMin: validated.priceMin ?? null,
-      mode: validated.mode,
-      priceMax: validated.priceMax ?? null,
-      marginMinPercentage: validated.marginMinPercentage ?? null,
-      notificationChannels: validated.notificationChannels,
-    })
-    .where(and(eq(alerts.id, alertId), eq(alerts.accountId, accountId)))
-    .returning({ id: alerts.id });
+  // RLS enforces account ownership via the `using/withCheck: accountId = auth.uid()` policy.
+  const [updated] = await db.rls(async (tx) =>
+    tx
+      .update(alerts)
+      .set({
+        name: validated.name ?? null,
+        brandId: validated.brandId ?? null,
+        modelId: validated.modelId ?? null,
+        locationId: validated.locationId ?? null,
+        radiusInKm: validated.radiusInKm ?? null,
+        modelYearMin: validated.modelYearMin ?? null,
+        modelYearMax: validated.modelYearMax ?? null,
+        mileageMin: validated.mileageMin ?? null,
+        mileageMax: validated.mileageMax ?? null,
+        priceMin: validated.priceMin ?? null,
+        mode: validated.mode,
+        priceMax: validated.priceMax ?? null,
+        marginMinPercentage: validated.marginMinPercentage ?? null,
+        notificationChannels: validated.notificationChannels,
+      })
+      .where(eq(alerts.id, alertId))
+      .returning({ id: alerts.id }),
+  );
 
   if (!updated) {
     throw new Error(EAlertErrorCode.ALERT_NOT_FOUND);
@@ -117,24 +124,26 @@ export async function updateAlert(alertId: string, data: unknown) {
 
 export async function updateAlertStatus(alertId: string, status: TAlertStatus) {
   const accountId = await getCurrentAccountId();
-  const db = getDBAdminClient();
+  const db = await createDrizzleSupabaseClient();
 
-  if (status === EAlertStatus.ACTIVE) {
-    const [account] = await db
-      .select({ hasSubscription: accounts.hasSubscription })
-      .from(accounts)
-      .where(eq(accounts.id, accountId))
-      .limit(1);
-    if (!account?.hasSubscription) {
-      throw new Error(ESubscriptionErrorCode.SUBSCRIPTION_REQUIRED);
+  const updated = await db.rls(async (tx) => {
+    if (status === EAlertStatus.ACTIVE) {
+      const [account] = await tx
+        .select({ hasSubscription: accounts.hasSubscription })
+        .from(accounts)
+        .limit(1);
+      if (!account?.hasSubscription) {
+        throw new Error(ESubscriptionErrorCode.SUBSCRIPTION_REQUIRED);
+      }
     }
-  }
 
-  const [updated] = await db
-    .update(alerts)
-    .set({ status })
-    .where(and(eq(alerts.id, alertId), eq(alerts.accountId, accountId)))
-    .returning({ id: alerts.id, status: alerts.status });
+    const [row] = await tx
+      .update(alerts)
+      .set({ status })
+      .where(eq(alerts.id, alertId))
+      .returning({ id: alerts.id, status: alerts.status });
+    return row;
+  });
 
   if (!updated) {
     throw new Error(EAlertErrorCode.ALERT_NOT_FOUND);
@@ -147,12 +156,11 @@ export async function updateAlertStatus(alertId: string, status: TAlertStatus) {
 
 export async function deleteAlert(alertId: string) {
   const accountId = await getCurrentAccountId();
-  const db = getDBAdminClient();
+  const db = await createDrizzleSupabaseClient();
 
-  const deleted = await db
-    .delete(alerts)
-    .where(and(eq(alerts.id, alertId), eq(alerts.accountId, accountId)))
-    .returning({ id: alerts.id });
+  const deleted = await db.rls(async (tx) =>
+    tx.delete(alerts).where(eq(alerts.id, alertId)).returning({ id: alerts.id }),
+  );
 
   if (deleted.length === 0) {
     throw new Error(EAlertErrorCode.ALERT_NOT_FOUND);

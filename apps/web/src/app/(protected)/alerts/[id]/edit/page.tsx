@@ -1,12 +1,11 @@
 import { AlertForm } from '@/components/alerts/alert-form';
 import { pages } from '@/config/routes';
+import { createDrizzleSupabaseClient } from '@/lib/db';
 import { createClient } from '@/lib/supabase/server';
 import { getAlertById } from '@/services/alert.service';
 import {
   accounts,
   brands as brandsTable,
-  eq,
-  getDBAdminClient,
   vehicleModels as vehicleModelsTable,
 } from '@alertdeals/db';
 import { notFound, redirect } from 'next/navigation';
@@ -27,19 +26,23 @@ export default async function EditAlertPage({ params }: Props) {
   const alert = await getAlertById(id).catch(() => null);
   if (!alert) notFound();
 
-  const db = getDBAdminClient();
+  const db = await createDrizzleSupabaseClient();
 
-  const [accountRow] = await db
-    .select({ hasSubscription: accounts.hasSubscription })
-    .from(accounts)
-    .where(eq(accounts.id, user.id))
-    .limit(1);
-  const isSubscribed = accountRow?.hasSubscription ?? false;
-
-  const [brands, vehicleModels] = await Promise.all([
-    db.select().from(brandsTable),
-    db.select().from(vehicleModelsTable),
-  ]);
+  const { isSubscribed, brands, vehicleModels } = await db.rls(async (tx) => {
+    const [accountRow] = await tx
+      .select({ hasSubscription: accounts.hasSubscription })
+      .from(accounts)
+      .limit(1);
+    const [brandsRows, vehicleModelsRows] = await Promise.all([
+      tx.select().from(brandsTable),
+      tx.select().from(vehicleModelsTable),
+    ]);
+    return {
+      isSubscribed: accountRow?.hasSubscription ?? false,
+      brands: brandsRows,
+      vehicleModels: vehicleModelsRows,
+    };
+  });
 
   return (
     <div className="px-4 py-8">
