@@ -1,11 +1,12 @@
-'use server';
+"use server";
 
-import { pages } from '@/config/routes';
-import { createClient } from '@/lib/supabase/server';
-import { magicLinkSchema } from '@/validation-schemas';
-import { redirect } from 'next/navigation';
+import { getSiteUrl } from "@/actions/utils/get-site-url";
+import { pages } from "@/config/routes";
+import { createClient } from "@/lib/supabase/server";
+import { magicLinkSchema } from "@/validation-schemas";
+import { redirect } from "next/navigation";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+const siteUrl = getSiteUrl();
 
 /**
  * Send a magic link to the user's email
@@ -38,7 +39,7 @@ export async function signInWithGoogle() {
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
+    provider: "google",
     options: {
       redirectTo: `${siteUrl}${pages.authCallback}`,
     },
