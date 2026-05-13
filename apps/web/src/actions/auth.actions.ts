@@ -1,8 +1,8 @@
 "use server";
 
-import { getSiteUrl } from "@/actions/utils/get-site-url";
 import { pages } from "@/config/routes";
 import { createClient } from "@/lib/supabase/server";
+import { getSiteUrl } from "@/utils/get-site-url";
 import { magicLinkSchema } from "@/validation-schemas";
 import { redirect } from "next/navigation";
 
