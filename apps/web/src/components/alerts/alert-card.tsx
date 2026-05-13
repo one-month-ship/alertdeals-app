@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { pages } from '@/config/routes';
 import type { TAccountAlert } from '@/services/alert.service';
+import { getErrorMessage } from '@/utils/error-messages.utils';
 import { EAlertMode, EAlertStatus, type TAlertStatus } from '@alertdeals/shared';
 import {
   Calendar,
@@ -70,9 +71,7 @@ export function AlertCard({ alert, onMutate }: Props) {
       await onMutate();
     } catch (error) {
       await onMutate();
-      const message =
-        error instanceof Error ? error.message : "L'opération a échoué. Veuillez réessayer.";
-      toast.error(message);
+      toast.error(getErrorMessage(error));
     } finally {
       setIsTogglingStatus(false);
     }
@@ -91,9 +90,7 @@ export function AlertCard({ alert, onMutate }: Props) {
       toast.success('Alerte supprimée.');
     } catch (error) {
       await onMutate();
-      const message =
-        error instanceof Error ? error.message : "La suppression a échoué. Veuillez réessayer.";
-      toast.error(message);
+      toast.error(getErrorMessage(error));
     } finally {
       setIsDeleting(false);
     }

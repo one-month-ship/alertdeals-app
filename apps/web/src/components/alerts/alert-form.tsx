@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { getErrorMessage } from '@/utils/error-messages.utils';
 import { alertFormSchema, type TAlertFormData } from '@/validation-schemas';
 import type { TBrand, TLocation, TVehicleModel } from '@alertdeals/db';
 import { ALERT_MODE_DEFINITIONS, EAlertMode } from '@alertdeals/shared';
@@ -84,13 +85,19 @@ export function AlertForm({ brands, vehicleModels, isSubscribed, alert }: Props)
 
   const onSubmit = async (data: TAlertFormData) => {
     setSubmitError(null);
-    const result = isEditMode ? await updateAlert(alert.id, data) : await createAlert(data);
-    if (!result.success) {
-      setSubmitError(result.error);
-      return;
+    try {
+      if (isEditMode) {
+        await updateAlert(alert.id, data);
+      } else {
+        await createAlert(data);
+      }
+      toast.success(
+        isEditMode ? 'Alerte mise à jour avec succès !' : 'Alerte créée avec succès !',
+      );
+      router.push('/alerts');
+    } catch (err) {
+      setSubmitError(getErrorMessage(err));
     }
-    toast.success(isEditMode ? 'Alerte mise à jour avec succès !' : 'Alerte créée avec succès !');
-    router.push('/alerts');
   };
 
   if (!isSubscribed && !isEditMode) {

@@ -1,37 +1,35 @@
 'use server';
 
+import { CACHE_TAGS } from '@/lib/cache.config';
 import { createClient } from '@/lib/supabase/server';
 import { getAccountAlerts } from '@/services/alert.service';
 import { alertFormSchema, createAlertSchema } from '@/validation-schemas';
 import { accounts, alerts, and, eq, getDBAdminClient } from '@alertdeals/db';
-import { EAlertStatus, type TAlertStatus } from '@alertdeals/shared';
-import { revalidatePath } from 'next/cache';
-
-type AlertMutationResult =
-  | { success: true; alertId: string }
-  | { success: false; error: string };
+import {
+  EAccountErrorCode,
+  EAlertErrorCode,
+  EAlertStatus,
+  EGeneralErrorCode,
+  ESubscriptionErrorCode,
+  type TAlertStatus,
+} from '@alertdeals/shared';
+import { updateTag } from 'next/cache';
 
 async function getCurrentUserId() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('Vous devez être connecté.');
+  if (!user) throw new Error(EGeneralErrorCode.UNAUTHORIZED);
   return user.id;
 }
 
-export async function createAlert(data: unknown): Promise<AlertMutationResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { success: false, error: 'Vous devez être connecté pour créer une alerte.' };
-  }
+export async function createAlert(data: unknown) {
+  const accountId = await getCurrentUserId();
 
   const parseResult = createAlertSchema.safeParse(data);
   if (!parseResult.success) {
-    return { success: false, error: 'Les informations saisies ne sont pas valides.' };
+    throw new Error(EGeneralErrorCode.VALIDATION_FAILED);
   }
   const validated = parseResult.data;
 
@@ -40,107 +38,90 @@ export async function createAlert(data: unknown): Promise<AlertMutationResult> {
   const [account] = await db
     .select({ hasSubscription: accounts.hasSubscription })
     .from(accounts)
-    .where(eq(accounts.id, user.id))
+    .where(eq(accounts.id, accountId))
     .limit(1);
 
   if (!account) {
-    return { success: false, error: 'Compte introuvable.' };
+    throw new Error(EAccountErrorCode.ACCOUNT_NOT_FOUND);
   }
   if (!account.hasSubscription) {
-    return {
-      success: false,
-      error: 'Un abonnement actif est requis pour créer une alerte.',
-    };
+    throw new Error(ESubscriptionErrorCode.SUBSCRIPTION_REQUIRED);
   }
 
-  try {
-    const [created] = await db
-      .insert(alerts)
-      .values({
-        accountId: user.id,
-        name: validated.name ?? null,
-        brandId: validated.brandId ?? null,
-        modelId: validated.modelId ?? null,
-        locationId: validated.locationId ?? null,
-        radiusInKm: validated.radiusInKm ?? null,
-        modelYearMin: validated.modelYearMin ?? null,
-        modelYearMax: validated.modelYearMax ?? null,
-        mileageMin: validated.mileageMin ?? null,
-        mileageMax: validated.mileageMax ?? null,
-        priceMin: validated.priceMin ?? null,
-        mode: validated.mode,
-        priceMax: validated.priceMax ?? null,
-        marginMinPercentage: validated.marginMinPercentage ?? null,
-        notificationChannels: validated.notificationChannels,
-      })
-      .returning({ id: alerts.id });
+  const [created] = await db
+    .insert(alerts)
+    .values({
+      accountId,
+      name: validated.name ?? null,
+      brandId: validated.brandId ?? null,
+      modelId: validated.modelId ?? null,
+      locationId: validated.locationId ?? null,
+      radiusInKm: validated.radiusInKm ?? null,
+      modelYearMin: validated.modelYearMin ?? null,
+      modelYearMax: validated.modelYearMax ?? null,
+      mileageMin: validated.mileageMin ?? null,
+      mileageMax: validated.mileageMax ?? null,
+      priceMin: validated.priceMin ?? null,
+      mode: validated.mode,
+      priceMax: validated.priceMax ?? null,
+      marginMinPercentage: validated.marginMinPercentage ?? null,
+      notificationChannels: validated.notificationChannels,
+    })
+    .returning({ id: alerts.id });
 
-    if (!created) {
-      return { success: false, error: "L'alerte n'a pas pu être enregistrée." };
-    }
-
-    revalidatePath('/alerts');
-
-    return { success: true, alertId: created.id };
-  } catch {
-    return { success: false, error: "Impossible d'enregistrer l'alerte. Veuillez réessayer." };
+  if (!created) {
+    throw new Error(EAlertErrorCode.ALERT_SAVE_FAILED);
   }
+
+  updateTag(CACHE_TAGS.alertsByAccount(accountId));
+
+  return { id: created.id };
 }
 
 export async function fetchAccountAlerts() {
   return getAccountAlerts();
 }
 
-export async function updateAlert(
-  alertId: string,
-  data: unknown,
-): Promise<AlertMutationResult> {
-  const accountId = await getCurrentUserId().catch(() => null);
-  if (!accountId) {
-    return { success: false, error: 'Vous devez être connecté pour modifier une alerte.' };
-  }
+export async function updateAlert(alertId: string, data: unknown) {
+  const accountId = await getCurrentUserId();
 
   const parseResult = alertFormSchema.safeParse(data);
   if (!parseResult.success) {
-    return { success: false, error: 'Les informations saisies ne sont pas valides.' };
+    throw new Error(EGeneralErrorCode.VALIDATION_FAILED);
   }
   const validated = parseResult.data;
 
   const db = getDBAdminClient();
 
-  try {
-    const [updated] = await db
-      .update(alerts)
-      .set({
-        name: validated.name ?? null,
-        brandId: validated.brandId ?? null,
-        modelId: validated.modelId ?? null,
-        locationId: validated.locationId ?? null,
-        radiusInKm: validated.radiusInKm ?? null,
-        modelYearMin: validated.modelYearMin ?? null,
-        modelYearMax: validated.modelYearMax ?? null,
-        mileageMin: validated.mileageMin ?? null,
-        mileageMax: validated.mileageMax ?? null,
-        priceMin: validated.priceMin ?? null,
-        mode: validated.mode,
-        priceMax: validated.priceMax ?? null,
-        marginMinPercentage: validated.marginMinPercentage ?? null,
-        notificationChannels: validated.notificationChannels,
-      })
-      .where(and(eq(alerts.id, alertId), eq(alerts.accountId, accountId)))
-      .returning({ id: alerts.id });
+  const [updated] = await db
+    .update(alerts)
+    .set({
+      name: validated.name ?? null,
+      brandId: validated.brandId ?? null,
+      modelId: validated.modelId ?? null,
+      locationId: validated.locationId ?? null,
+      radiusInKm: validated.radiusInKm ?? null,
+      modelYearMin: validated.modelYearMin ?? null,
+      modelYearMax: validated.modelYearMax ?? null,
+      mileageMin: validated.mileageMin ?? null,
+      mileageMax: validated.mileageMax ?? null,
+      priceMin: validated.priceMin ?? null,
+      mode: validated.mode,
+      priceMax: validated.priceMax ?? null,
+      marginMinPercentage: validated.marginMinPercentage ?? null,
+      notificationChannels: validated.notificationChannels,
+    })
+    .where(and(eq(alerts.id, alertId), eq(alerts.accountId, accountId)))
+    .returning({ id: alerts.id });
 
-    if (!updated) {
-      return { success: false, error: 'Alerte introuvable.' };
-    }
-
-    revalidatePath('/alerts');
-    revalidatePath(`/alerts/${alertId}/edit`);
-
-    return { success: true, alertId: updated.id };
-  } catch {
-    return { success: false, error: "Impossible d'enregistrer les modifications. Veuillez réessayer." };
+  if (!updated) {
+    throw new Error(EAlertErrorCode.ALERT_NOT_FOUND);
   }
+
+  updateTag(CACHE_TAGS.alertsByAccount(accountId));
+  updateTag(CACHE_TAGS.alert(alertId));
+
+  return { id: updated.id };
 }
 
 export async function updateAlertStatus(alertId: string, status: TAlertStatus) {
@@ -154,7 +135,7 @@ export async function updateAlertStatus(alertId: string, status: TAlertStatus) {
       .where(eq(accounts.id, accountId))
       .limit(1);
     if (!account?.hasSubscription) {
-      throw new Error('Un abonnement actif est requis pour activer une alerte.');
+      throw new Error(ESubscriptionErrorCode.SUBSCRIPTION_REQUIRED);
     }
   }
 
@@ -165,10 +146,11 @@ export async function updateAlertStatus(alertId: string, status: TAlertStatus) {
     .returning({ id: alerts.id, status: alerts.status });
 
   if (!updated) {
-    throw new Error('Alerte introuvable.');
+    throw new Error(EAlertErrorCode.ALERT_NOT_FOUND);
   }
 
-  revalidatePath('/alerts');
+  updateTag(CACHE_TAGS.alertsByAccount(accountId));
+  updateTag(CACHE_TAGS.alert(alertId));
   return updated;
 }
 
@@ -182,9 +164,10 @@ export async function deleteAlert(alertId: string) {
     .returning({ id: alerts.id });
 
   if (deleted.length === 0) {
-    throw new Error('Alerte introuvable.');
+    throw new Error(EAlertErrorCode.ALERT_NOT_FOUND);
   }
 
-  revalidatePath('/alerts');
+  updateTag(CACHE_TAGS.alertsByAccount(accountId));
+  updateTag(CACHE_TAGS.alert(alertId));
   return { success: true };
 }
