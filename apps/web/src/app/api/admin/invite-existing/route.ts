@@ -1,3 +1,4 @@
+import { pages } from "@/config/routes";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getSiteUrl } from "@/utils/get-site-url";
 import { accounts, eq, getDBAdminClient } from "@alertdeals/db";
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
   const { error } = await supabaseAdmin.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${getSiteUrl()}/api/auth/callback`,
+      emailRedirectTo: `${getSiteUrl()}${pages.authCallback}`,
       shouldCreateUser: false,
     },
   });
