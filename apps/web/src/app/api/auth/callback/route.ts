@@ -36,10 +36,20 @@ async function handleAuthSuccess(
   origin: string,
   invitedByAdmin?: boolean,
 ): Promise<NextResponse> {
+  console.log("[auth/callback] handleAuthSuccess called", {
+    origin,
+    invitedByAdmin,
+  });
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  console.log("[auth/callback] getUser result", {
+    userId: user?.id,
+    email: user?.email,
+  });
 
   if (invitedByAdmin)
     return NextResponse.redirect(`${origin}${pages.hotDeals}`);
@@ -59,12 +69,19 @@ async function handleAuthSuccess(
     .where(eq(accounts.id, user.id))
     .limit(1);
 
+  console.log("[auth/callback] account lookup", {
+    userId: user.id,
+    account: account ?? "NOT_FOUND",
+  });
+
   if (!account) {
+    console.error("[auth/callback] no account row for user", user.id);
     await supabase.auth.signOut();
     return redirectToLogin(origin, EAuthErrorCode.ACCOUNT_FETCH_FAILED);
   }
 
   if (!account.confirmedByAdmin) {
+    console.error("[auth/callback] account not confirmed by admin", user.id);
     await supabase.auth.signOut();
     return redirectToLogin(origin, EAuthErrorCode.ACCOUNT_PENDING_VALIDATION);
   }
@@ -76,6 +93,7 @@ async function handleAuthSuccess(
       .where(eq(accounts.id, user.id));
   }
 
+  console.log("[auth/callback] success, redirecting to hotDeals");
   return NextResponse.redirect(`${origin}${pages.hotDeals}`);
 }
 
@@ -87,6 +105,16 @@ export async function GET(request: Request) {
   const providerError = searchParams.get("error");
   const providerErrorDescription = searchParams.get("error_description");
   const invitedByAdmin = searchParams.has("invited");
+
+  console.log("[auth/callback] GET called", {
+    origin,
+    hasCode: !!code,
+    hasTokenHash: !!tokenHash,
+    type,
+    invitedByAdmin,
+    hasError: !!providerError,
+    fullUrl: request.url,
+  });
 
   if (providerError || providerErrorDescription) {
     console.error("[auth/callback] provider returned error", {
