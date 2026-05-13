@@ -1,39 +1,30 @@
 import { pages } from '@/config/routes';
 import { createClient } from '@/lib/supabase/server';
 import { accounts, eq, getDBAdminClient } from '@alertdeals/db';
+import { EAuthErrorCode } from '@alertdeals/shared';
 import { NextResponse } from 'next/server';
 
-const USER_ERRORS = {
-  GENERIC: 'La connexion a échoué. Réessaie ou contacte-nous si le problème persiste.',
-  LINK_EXPIRED: 'Ton lien de connexion a expiré. Demande un nouveau lien depuis la page de connexion.',
-  LINK_INVALID: 'Lien de connexion invalide. Demande un nouveau lien depuis la page de connexion.',
-  OAUTH_DENIED: 'Connexion Google annulée. Réessaie quand tu veux.',
-  NOT_CONFIRMED:
-    'Ton compte est en attente de validation par notre équipe. Tu recevras un email dès qu’il sera prêt.',
-  ACCOUNT_FETCH: 'Impossible d’accéder à ton compte pour le moment. Réessaie dans quelques instants.',
-} as const;
-
 /**
- * Map known raw provider/Supabase error strings to user-friendly French messages.
- * Falls back to GENERIC for anything unexpected.
+ * Maps known raw provider/Supabase error strings to a stable error code.
+ * The client maps the code to a user-facing FR message via getErrorMessage().
  */
-function mapAuthError(raw: string | null | undefined): string {
-  if (!raw) return USER_ERRORS.GENERIC;
+function mapAuthError(raw: string | null | undefined): EAuthErrorCode {
+  if (!raw) return EAuthErrorCode.AUTH_ERROR;
   const lower = raw.toLowerCase();
 
-  if (lower.includes('expired')) return USER_ERRORS.LINK_EXPIRED;
+  if (lower.includes('expired')) return EAuthErrorCode.LINK_EXPIRED;
   if (lower.includes('invalid') && (lower.includes('token') || lower.includes('otp'))) {
-    return USER_ERRORS.LINK_INVALID;
+    return EAuthErrorCode.LINK_INVALID;
   }
   if (lower.includes('access_denied') || lower.includes('user denied')) {
-    return USER_ERRORS.OAUTH_DENIED;
+    return EAuthErrorCode.OAUTH_DENIED;
   }
 
-  return USER_ERRORS.GENERIC;
+  return EAuthErrorCode.AUTH_ERROR;
 }
 
-function redirectToLogin(origin: string, message: string) {
-  return NextResponse.redirect(`${origin}${pages.login}?error=${encodeURIComponent(message)}`);
+function redirectToLogin(origin: string, code: EAuthErrorCode) {
+  return NextResponse.redirect(`${origin}${pages.login}?error=${encodeURIComponent(code)}`);
 }
 
 async function handleAuthSuccess(origin: string): Promise<NextResponse> {
@@ -43,7 +34,7 @@ async function handleAuthSuccess(origin: string): Promise<NextResponse> {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return redirectToLogin(origin, USER_ERRORS.GENERIC);
+    return redirectToLogin(origin, EAuthErrorCode.AUTH_ERROR);
   }
 
   const db = getDBAdminClient();
@@ -59,12 +50,12 @@ async function handleAuthSuccess(origin: string): Promise<NextResponse> {
 
   if (!account) {
     await supabase.auth.signOut();
-    return redirectToLogin(origin, USER_ERRORS.ACCOUNT_FETCH);
+    return redirectToLogin(origin, EAuthErrorCode.ACCOUNT_FETCH_FAILED);
   }
 
   if (!account.confirmedByAdmin) {
     await supabase.auth.signOut();
-    return redirectToLogin(origin, USER_ERRORS.NOT_CONFIRMED);
+    return redirectToLogin(origin, EAuthErrorCode.ACCOUNT_PENDING_VALIDATION);
   }
 
   if (account.isFirstConnexion) {
@@ -120,5 +111,5 @@ export async function GET(request: Request) {
     return handleAuthSuccess(origin);
   }
 
-  return redirectToLogin(origin, USER_ERRORS.GENERIC);
+  return redirectToLogin(origin, EAuthErrorCode.AUTH_ERROR);
 }

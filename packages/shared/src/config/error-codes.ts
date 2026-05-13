@@ -21,8 +21,19 @@ export enum EAlertErrorCode {
 }
 export type TAlertErrorCode = EAlertErrorCode;
 
+export enum EAuthErrorCode {
+  AUTH_ERROR = 'AUTH_ERROR',
+  LINK_EXPIRED = 'LINK_EXPIRED',
+  LINK_INVALID = 'LINK_INVALID',
+  OAUTH_DENIED = 'OAUTH_DENIED',
+  ACCOUNT_PENDING_VALIDATION = 'ACCOUNT_PENDING_VALIDATION',
+  ACCOUNT_FETCH_FAILED = 'ACCOUNT_FETCH_FAILED',
+}
+export type TAuthErrorCode = EAuthErrorCode;
+
 export type TErrorCode =
   | TGeneralErrorCode
   | TAccountErrorCode
   | TSubscriptionErrorCode
-  | TAlertErrorCode;
+  | TAlertErrorCode
+  | TAuthErrorCode;

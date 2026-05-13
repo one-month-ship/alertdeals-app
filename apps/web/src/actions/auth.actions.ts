@@ -1,20 +1,18 @@
 "use server";
 
-import { pages } from "@/config/routes";
-import { createClient } from "@/lib/supabase/server";
-import { getSiteUrl } from "@/utils/get-site-url";
-import { magicLinkSchema } from "@/validation-schemas";
-import { redirect } from "next/navigation";
+import { pages } from '@/config/routes';
+import { createClient } from '@/lib/supabase/server';
+import { getSiteUrl } from '@/utils/get-site-url';
+import { magicLinkSchema } from '@/validation-schemas';
+import { EAuthErrorCode, EGeneralErrorCode } from '@alertdeals/shared';
+import { redirect } from 'next/navigation';
 
 const siteUrl = getSiteUrl();
 
-/**
- * Send a magic link to the user's email
- */
 export async function signInWithMagicLink(formData: { email: string }) {
   const result = magicLinkSchema.safeParse(formData);
   if (!result.success) {
-    return { error: result.error.message };
+    return { error: EGeneralErrorCode.VALIDATION_FAILED };
   }
 
   const supabase = await createClient();
@@ -27,14 +25,11 @@ export async function signInWithMagicLink(formData: { email: string }) {
     },
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: EAuthErrorCode.AUTH_ERROR };
 
   return { success: true };
 }
 
-/**
- * Initiate Google OAuth sign-in
- */
 export async function signInWithGoogle() {
   const supabase = await createClient();
 
@@ -46,7 +41,7 @@ export async function signInWithGoogle() {
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: EAuthErrorCode.AUTH_ERROR };
   }
 
   if (data.url) {
@@ -56,24 +51,18 @@ export async function signInWithGoogle() {
   return { success: true };
 }
 
-/**
- * Sign out the current user
- */
 export async function signOut() {
   const supabase = await createClient();
 
   const { error } = await supabase.auth.signOut();
 
   if (error) {
-    return { error: error.message };
+    return { error: EAuthErrorCode.AUTH_ERROR };
   }
 
   redirect(pages.login);
 }
 
-/**
- * Get the current authenticated user (server-side)
- */
 export async function getUser() {
   const supabase = await createClient();
   const {

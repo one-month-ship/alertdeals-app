@@ -1,6 +1,7 @@
 'use client';
 
 import { signInWithGoogle, signInWithMagicLink } from '@/actions/auth.actions';
+import { getErrorMessage } from '@/utils/error-messages.utils';
 import { magicLinkSchema, type TMagicLinkFormData } from '@/validation-schemas';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BellRing } from 'lucide-react';
@@ -11,7 +12,9 @@ import { useForm } from 'react-hook-form';
 export function LoginForm() {
   const searchParams = useSearchParams();
   const urlError = searchParams.get('error');
-  const [error, setError] = useState<string | null>(urlError);
+  const [error, setError] = useState<string | null>(
+    urlError ? getErrorMessage(urlError) : null,
+  );
   const [isSuccess, setIsSuccess] = useState(false);
 
   const {
@@ -28,7 +31,7 @@ export function LoginForm() {
     setIsSuccess(false);
     const result = await signInWithMagicLink(data);
     if (result.error) {
-      setError(result.error);
+      setError(getErrorMessage(result.error));
       return;
     }
     setIsSuccess(true);
@@ -38,7 +41,7 @@ export function LoginForm() {
     setError(null);
     setIsSuccess(false);
     const result = await signInWithGoogle();
-    if (result?.error) setError(result.error);
+    if (result?.error) setError(getErrorMessage(result.error));
   };
 
   return (
