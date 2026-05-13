@@ -1,9 +1,9 @@
 import { pages } from "@/config/routes";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getSiteUrl } from "@/utils/get-site-url";
+import { accounts, eq, getDBAdminClient } from "@alertdeals/db";
 
 export async function POST(req: Request) {
-  // Must be admin user initiating the request
   const authHeader = req.headers.get("authorization");
   const expectedToken = process.env.ADMIN_API_SECRET;
 
@@ -19,5 +19,14 @@ export async function POST(req: Request) {
     },
   );
 
-  return Response.json({ data, error });
+  if (error) return Response.json({ error: error.message }, { status: 500 });
+
+  // The trigger creates the account row — mark it as confirmed by admin
+  const db = getDBAdminClient();
+  await db
+    .update(accounts)
+    .set({ confirmedByAdmin: true })
+    .where(eq(accounts.email, email));
+
+  return Response.json({ success: true });
 }
