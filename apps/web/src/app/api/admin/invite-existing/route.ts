@@ -14,14 +14,14 @@ export async function POST(req: Request) {
 
   const db = getDBAdminClient();
 
-  const account = db.query.accounts.findFirst({
+  const account = await db.query.accounts.findFirst({
     where: (table, { eq }) => eq(table.email, email),
   });
 
   if (!account) return Response.json({ error: "NO_ACCOUNT" }, { status: 401 });
 
   try {
-    db.update(accounts)
+    await db.update(accounts)
       .set({ confirmedByAdmin: true })
       .where(eq(accounts.email, email));
   } catch (error) {
