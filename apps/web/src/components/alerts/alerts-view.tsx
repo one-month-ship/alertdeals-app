@@ -1,28 +1,15 @@
-'use client';
-
-import { fetchAccountAlerts } from '@/actions/alert.actions';
 import { AlertCard } from '@/components/alerts/alert-card';
 import { Button } from '@/components/ui/button';
 import { pages } from '@/config/routes';
 import type { TAccountAlert } from '@/services/alert.service';
 import { Bell, Plus } from 'lucide-react';
 import Link from 'next/link';
-import useSWR from 'swr';
 
 type Props = {
   alerts: TAccountAlert[];
 };
 
-export function AlertsView({ alerts: initialAlerts }: Props) {
-  const { data: alerts = initialAlerts, mutate } = useSWR(
-    'account-alerts',
-    () => fetchAccountAlerts(),
-    {
-      fallbackData: initialAlerts,
-      revalidateOnFocus: true,
-    },
-  );
-
+export function AlertsView({ alerts }: Props) {
   return (
     <div className="px-4 py-8">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -70,7 +57,7 @@ export function AlertsView({ alerts: initialAlerts }: Props) {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {alerts.map((alert) => (
-            <AlertCard key={alert.id} alert={alert} onMutate={mutate} />
+            <AlertCard key={alert.id} alert={alert} />
           ))}
         </div>
       )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { deleteAlert, fetchAccountAlerts, updateAlertStatus } from '@/actions/alert.actions';
+import { deleteAlert, updateAlertStatus } from '@/actions/alert.actions';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,13 +34,12 @@ import {
   Wallet,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useOptimistic, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import type { KeyedMutator } from 'swr';
 
 type Props = {
   alert: TAccountAlert;
-  onMutate: KeyedMutator<Awaited<ReturnType<typeof fetchAccountAlerts>>>;
 };
 
 const eurosFormatter = new Intl.NumberFormat('fr-FR', {
@@ -51,50 +50,42 @@ const eurosFormatter = new Intl.NumberFormat('fr-FR', {
 
 const kmFormatter = new Intl.NumberFormat('fr-FR');
 
-export function AlertCard({ alert, onMutate }: Props) {
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+export function AlertCard({ alert }: Props) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [isDeleted, setIsDeleted] = useState(false);
+  const [optimisticStatus, setOptimisticStatus] = useOptimistic<TAlertStatus>(alert.status);
 
-  const isActive = alert.status === EAlertStatus.ACTIVE;
+  const isActive = optimisticStatus === EAlertStatus.ACTIVE;
 
-  const handleToggleStatus = async () => {
-    setIsTogglingStatus(true);
+  const handleToggleStatus = () => {
     const newStatus: TAlertStatus = isActive ? EAlertStatus.PAUSED : EAlertStatus.ACTIVE;
-
-    await onMutate(
-      (current) => current?.map((a) => (a.id === alert.id ? { ...a, status: newStatus } : a)),
-      { revalidate: false },
-    );
-
-    try {
-      await updateAlertStatus(alert.id, newStatus);
-      await onMutate();
-    } catch (error) {
-      await onMutate();
-      toast.error(getErrorMessage(error));
-    } finally {
-      setIsTogglingStatus(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    setIsDeleting(true);
-
-    await onMutate((current) => current?.filter((a) => a.id !== alert.id), {
-      revalidate: false,
+    startTransition(async () => {
+      setOptimisticStatus(newStatus);
+      try {
+        await updateAlertStatus(alert.id, newStatus);
+        router.refresh();
+      } catch (error) {
+        toast.error(getErrorMessage(error));
+      }
     });
-
-    try {
-      await deleteAlert(alert.id);
-      await onMutate();
-      toast.success('Alerte supprimée.');
-    } catch (error) {
-      await onMutate();
-      toast.error(getErrorMessage(error));
-    } finally {
-      setIsDeleting(false);
-    }
   };
+
+  const handleDelete = () => {
+    startTransition(async () => {
+      setIsDeleted(true);
+      try {
+        await deleteAlert(alert.id);
+        toast.success('Alerte supprimée.');
+        router.refresh();
+      } catch (error) {
+        setIsDeleted(false);
+        toast.error(getErrorMessage(error));
+      }
+    });
+  };
+
+  if (isDeleted) return null;
 
   const title =
     alert.name?.trim() ||
@@ -197,10 +188,10 @@ export function AlertCard({ alert, onMutate }: Props) {
           variant="ghost"
           size="sm"
           onClick={handleToggleStatus}
-          disabled={isTogglingStatus}
+          disabled={isPending}
           className="gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
         >
-          {isTogglingStatus ? (
+          {isPending ? (
             <Loader2 className="size-3.5 animate-spin" />
           ) : isActive ? (
             <Pause className="size-3.5" />
@@ -214,10 +205,10 @@ export function AlertCard({ alert, onMutate }: Props) {
             <Button
               variant="ghost"
               size="sm"
-              disabled={isDeleting}
+              disabled={isPending}
               className="gap-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
             >
-              {isDeleting ? (
+              {isPending ? (
                 <Loader2 className="size-3.5 animate-spin" />
               ) : (
                 <Trash2 className="size-3.5" />
