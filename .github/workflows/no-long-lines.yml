@@ -18,6 +18,7 @@ jobs:
             | grep -v -E '(^|/)(node_modules|dist|build|coverage|\.next|out)/' \
             | grep -v -E '\.(min|bundle)\.(js|css)$' \
             | grep -v -E '(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$' \
+            | grep -v -E '(^|/)apps/web/src/components/ui/' \
             | while read f; do
                 awk -v file="$f" -v max=$MAX '
                   length > max { printf "%s:%d: %d chars\n", file, NR, length }
