@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   const { error } = await supabaseAdmin.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${getSiteUrl()}${apiRoutes.authAdminCallback}`,
+      emailRedirectTo: `${getSiteUrl()}${apiRoutes.authCallback}?invited=1`,
       shouldCreateUser: false,
     },
   });

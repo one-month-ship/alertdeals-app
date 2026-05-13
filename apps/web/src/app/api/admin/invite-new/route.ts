@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
     email,
     {
-      redirectTo: `${getSiteUrl()}${apiRoutes.authAdminCallback}`,
+      redirectTo: `${getSiteUrl()}${apiRoutes.authCallback}?invited=1`,
     },
   );
 

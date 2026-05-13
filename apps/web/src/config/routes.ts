@@ -22,7 +22,6 @@ export const pages = {
 
 export const apiRoutes = {
   authCallback: "/api/auth/callback",
-  authAdminCallback: "/api/auth/callback/invited",
 } as const;
 
 type ExtractStaticRoutes<T> = T extends string
