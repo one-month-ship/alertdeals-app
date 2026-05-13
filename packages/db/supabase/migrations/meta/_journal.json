@@ -26,15 +26,8 @@
     {
       "idx": 3,
       "version": "7",
-      "when": 1778458968517,
+      "when": 1778687424685,
       "tag": "0003_migration",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1778595947416,
-      "tag": "0004_migration",
       "breakpoints": true
     }
   ]

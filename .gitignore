@@ -12,3 +12,6 @@ dist/
 *.tsbuildinfo
 next-env.d.ts
 config.bat
+
+# Supabase CLI temp files
+supabase/.temp/

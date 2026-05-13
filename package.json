@@ -30,7 +30,7 @@
     "db:generate": "pnpm _with-env-dev pnpm --filter @alertdeals/db db:generate",
     "db:drop": "pnpm --filter @alertdeals/db db:drop",
     "db:push": "pnpm _with-env-dev bash -c 'if [[ \"$SUPABASE_DATABASE_URL\" != *127.0.0.1* ]]; then echo \"❌ db:push only works on local DB\"; exit 1; fi && pnpm --filter @alertdeals/db push'",
-    "db:link:prod": "supabase --workdir packages/db link --project-ref pqyifeejkwjgzmynolgy",
+    "db:link:prod": "supabase --workdir packages/db link --project-ref lvehubngaygkfahvzthu",
     "db:push:prod": "pnpm db:link:prod && supabase --workdir packages/db db push",
     "secrets:encrypt": "bash scripts/encrypt-secrets.sh",
     "encrypt:var": "bash scripts/encrypt-var.sh",

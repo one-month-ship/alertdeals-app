@@ -1,5 +1,5 @@
 {
-  "id": "8feb3dd6-f360-4d73-9ff6-485adfc1b78d",
+  "id": "6e38965e-057a-4dc3-9561-e82ee245b812",
   "prevId": "e6d61c6a-17d5-47a3-b984-92fe56b478d9",
   "version": "7",
   "dialect": "postgresql",
@@ -1141,7 +1141,7 @@
           "name": "locations_geo_idx",
           "columns": [
             {
-              "expression": "(ST_MakePoint(\"lng\", \"lat\")::geography)",
+              "expression": "(extensions.ST_MakePoint(\"lng\", \"lat\")::extensions.geography)",
               "asc": true,
               "isExpression": true,
               "nulls": "last"
@@ -1411,9 +1411,262 @@
       },
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.alerts": {
+      "name": "alerts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "alert_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "brand_id": {
+          "name": "brand_id",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model_id": {
+          "name": "model_id",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "location_id": {
+          "name": "location_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "radius_in_km": {
+          "name": "radius_in_km",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model_year_min": {
+          "name": "model_year_min",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model_year_max": {
+          "name": "model_year_max",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mileage_min": {
+          "name": "mileage_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mileage_max": {
+          "name": "mileage_max",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "price_min": {
+          "name": "price_min",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mode": {
+          "name": "mode",
+          "type": "alert_mode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price_max": {
+          "name": "price_max",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "margin_min_percentage": {
+          "name": "margin_min_percentage",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notification_channels": {
+          "name": "notification_channels",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "alert_account_id_idx": {
+          "name": "alert_account_id_idx",
+          "columns": [
+            {
+              "expression": "account_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "alert_account_id_status_idx": {
+          "name": "alert_account_id_status_idx",
+          "columns": [
+            {
+              "expression": "account_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "alerts_brand_id_brands_id_fk": {
+          "name": "alerts_brand_id_brands_id_fk",
+          "tableFrom": "alerts",
+          "tableTo": "brands",
+          "columnsFrom": [
+            "brand_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "alerts_model_id_vehicle_models_id_fk": {
+          "name": "alerts_model_id_vehicle_models_id_fk",
+          "tableFrom": "alerts",
+          "tableTo": "vehicle_models",
+          "columnsFrom": [
+            "model_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "alerts_location_id_locations_id_fk": {
+          "name": "alerts_location_id_locations_id_fk",
+          "tableFrom": "alerts",
+          "tableTo": "locations",
+          "columnsFrom": [
+            "location_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "alert_account_id_fk": {
+          "name": "alert_account_id_fk",
+          "tableFrom": "alerts",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "enable insert for authenticated roles": {
+          "name": "enable insert for authenticated roles",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "true"
+        },
+        "enable read update and delete for the alert owners": {
+          "name": "enable read update and delete for the alert owners",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"alerts\".\"account_id\" = (select auth.uid())",
+          "withCheck": "\"alerts\".\"account_id\" = (select auth.uid())"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.alert_mode": {
+      "name": "alert_mode",
+      "schema": "public",
+      "values": [
+        "price_max",
+        "margin_min"
+      ]
+    },
+    "public.alert_status": {
+      "name": "alert_status",
+      "schema": "public",
+      "values": [
+        "active",
+        "paused"
+      ]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},
