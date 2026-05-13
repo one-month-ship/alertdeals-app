@@ -1,3 +1,5 @@
+CREATE TYPE "public"."alert_mode" AS ENUM('price_max', 'margin_min');--> statement-breakpoint
+CREATE TYPE "public"."alert_status" AS ENUM('active', 'paused');--> statement-breakpoint
 CREATE TABLE "accounts" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"email" varchar(320) NOT NULL,
@@ -157,6 +159,28 @@ CREATE TABLE "vehicle_states" (
 );
 --> statement-breakpoint
 ALTER TABLE "vehicle_states" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+CREATE TABLE "alerts" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"account_id" uuid NOT NULL,
+	"name" varchar(255),
+	"status" "alert_status" DEFAULT 'active' NOT NULL,
+	"brand_id" smallint,
+	"model_id" smallint,
+	"location_id" integer,
+	"radius_in_km" smallint,
+	"model_year_min" smallint,
+	"model_year_max" smallint,
+	"mileage_min" integer,
+	"mileage_max" integer,
+	"price_min" real,
+	"mode" "alert_mode" NOT NULL,
+	"price_max" real,
+	"margin_min_percentage" real,
+	"notification_channels" jsonb NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+ALTER TABLE "alerts" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "ad_sub_types" ADD CONSTRAINT "ad_sub_types_ad_type_id_ad_types_id_fk" FOREIGN KEY ("ad_type_id") REFERENCES "public"."ad_types"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ads" ADD CONSTRAINT "ads_type_id_ad_types_id_fk" FOREIGN KEY ("type_id") REFERENCES "public"."ad_types"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ads" ADD CONSTRAINT "ads_subtype_id_ad_sub_types_id_fk" FOREIGN KEY ("subtype_id") REFERENCES "public"."ad_sub_types"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -170,6 +194,10 @@ ALTER TABLE "ads" ADD CONSTRAINT "ads_model_id_vehicle_models_id_fk" FOREIGN KEY
 ALTER TABLE "ads" ADD CONSTRAINT "ads_market_position_id_market_positions_id_fk" FOREIGN KEY ("market_position_id") REFERENCES "public"."market_positions"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ads" ADD CONSTRAINT "ads_fuel_id_fuels_id_fk" FOREIGN KEY ("fuel_id") REFERENCES "public"."fuels"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "vehicle_models" ADD CONSTRAINT "vehicle_models_brand_id_brands_id_fk" FOREIGN KEY ("brand_id") REFERENCES "public"."brands"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "alerts" ADD CONSTRAINT "alerts_brand_id_brands_id_fk" FOREIGN KEY ("brand_id") REFERENCES "public"."brands"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "alerts" ADD CONSTRAINT "alerts_model_id_vehicle_models_id_fk" FOREIGN KEY ("model_id") REFERENCES "public"."vehicle_models"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "alerts" ADD CONSTRAINT "alerts_location_id_locations_id_fk" FOREIGN KEY ("location_id") REFERENCES "public"."locations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "alerts" ADD CONSTRAINT "alert_account_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "ads_brand_id_idx" ON "ads" USING btree ("brand_id");--> statement-breakpoint
 CREATE INDEX "ads_model_id_idx" ON "ads" USING btree ("model_id");--> statement-breakpoint
 CREATE INDEX "ads_vehicle_state_id_idx" ON "ads" USING btree ("vehicle_state_id");--> statement-breakpoint
@@ -186,7 +214,9 @@ CREATE INDEX "ads_margin_amount_min" ON "ads" USING btree ("margin_amount_min");
 CREATE INDEX "ads_margin_amount_max" ON "ads" USING btree ("margin_amount_max");--> statement-breakpoint
 CREATE INDEX "ads_margin_percent_min" ON "ads" USING btree ("margin_percentage_min");--> statement-breakpoint
 CREATE INDEX "ads_margin_percent_max" ON "ads" USING btree ("margin_percentage_max");--> statement-breakpoint
-CREATE INDEX "locations_geo_idx" ON "locations" USING gist ((ST_MakePoint("lng", "lat")::geography));--> statement-breakpoint
+CREATE INDEX "locations_geo_idx" ON "locations" USING gist ((extensions.ST_MakePoint("lng", "lat")::extensions.geography));--> statement-breakpoint
+CREATE INDEX "alert_account_id_idx" ON "alerts" USING btree ("account_id");--> statement-breakpoint
+CREATE INDEX "alert_account_id_status_idx" ON "alerts" USING btree ("account_id","status");--> statement-breakpoint
 CREATE POLICY "enable all for account owners" ON "accounts" AS PERMISSIVE FOR ALL TO "authenticated" USING ((select auth.uid()) = "accounts"."id") WITH CHECK ((select auth.uid()) = "accounts"."id");--> statement-breakpoint
 CREATE POLICY "enable read for authenticated users" ON "ad_sub_types" AS PERMISSIVE FOR SELECT TO "authenticated" USING (true);--> statement-breakpoint
 CREATE POLICY "enable read for authenticated users" ON "ad_types" AS PERMISSIVE FOR SELECT TO "authenticated" USING (true);--> statement-breakpoint
@@ -199,4 +229,6 @@ CREATE POLICY "enable read for authenticated users" ON "locations" AS PERMISSIVE
 CREATE POLICY "enable read for authenticated users" ON "market_positions" AS PERMISSIVE FOR SELECT TO "authenticated" USING (true);--> statement-breakpoint
 CREATE POLICY "enable read for authenticated users" ON "vehicle_models" AS PERMISSIVE FOR SELECT TO "authenticated" USING (true);--> statement-breakpoint
 CREATE POLICY "enable read for authenticated users" ON "vehicle_seats" AS PERMISSIVE FOR SELECT TO "authenticated" USING (true);--> statement-breakpoint
-CREATE POLICY "enable read for authenticated users" ON "vehicle_states" AS PERMISSIVE FOR SELECT TO "authenticated" USING (true);
+CREATE POLICY "enable read for authenticated users" ON "vehicle_states" AS PERMISSIVE FOR SELECT TO "authenticated" USING (true);--> statement-breakpoint
+CREATE POLICY "enable insert for authenticated roles" ON "alerts" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK (true);--> statement-breakpoint
+CREATE POLICY "enable read update and delete for the alert owners" ON "alerts" AS PERMISSIVE FOR ALL TO "authenticated" USING ("alerts"."account_id" = (select auth.uid())) WITH CHECK ("alerts"."account_id" = (select auth.uid()));

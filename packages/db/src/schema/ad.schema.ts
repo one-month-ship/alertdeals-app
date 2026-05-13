@@ -228,7 +228,7 @@ export const locations = pgTable(
     unique('zipcode_name_unique').on(table.name, table.zipcode),
     index('locations_geo_idx').using(
       'gist',
-      sql`(ST_MakePoint(${table.lng}, ${table.lat})::geography)`,
+      sql`(extensions.ST_MakePoint(${table.lng}, ${table.lat})::extensions.geography)`,
     ),
     pgPolicy('enable read for authenticated users', {
       as: 'permissive',
