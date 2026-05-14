@@ -1,19 +1,11 @@
 "use server";
 
-<<<<<<< HEAD
-import { pages } from '@/config/routes';
-import { createClient } from '@/lib/supabase/server';
-import { getSiteUrl } from '@/utils/get-site-url';
-import { magicLinkSchema } from '@/validation-schemas';
-import { EAuthErrorCode, EGeneralErrorCode } from '@alertdeals/shared';
-import { redirect } from 'next/navigation';
-=======
 import { apiRoutes, pages } from "@/config/routes";
 import { createClient } from "@/lib/supabase/server";
 import { getSiteUrl } from "@/utils/get-site-url";
 import { magicLinkSchema } from "@/validation-schemas";
+import { EAuthErrorCode, EGeneralErrorCode } from "@alertdeals/shared";
 import { redirect } from "next/navigation";
->>>>>>> ba34325 (whenever invite sent by admin, user must be accepted directly)
 
 const siteUrl = getSiteUrl();
 
