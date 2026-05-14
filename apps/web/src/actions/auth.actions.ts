@@ -1,11 +1,11 @@
 "use server";
 
-import { pages } from '@/config/routes';
-import { createClient } from '@/lib/supabase/server';
-import { getSiteUrl } from '@/utils/get-site-url';
-import { magicLinkSchema } from '@/validation-schemas';
-import { EAuthErrorCode, EGeneralErrorCode } from '@alertdeals/shared';
-import { redirect } from 'next/navigation';
+import { apiRoutes, pages } from "@/config/routes";
+import { createClient } from "@/lib/supabase/server";
+import { getSiteUrl } from "@/utils/get-site-url";
+import { magicLinkSchema } from "@/validation-schemas";
+import { EAuthErrorCode, EGeneralErrorCode } from "@alertdeals/shared";
+import { redirect } from "next/navigation";
 
 const siteUrl = getSiteUrl();
 
@@ -21,7 +21,7 @@ export async function signInWithMagicLink(formData: { email: string }) {
     email: result.data.email,
     options: {
       shouldCreateUser: true,
-      emailRedirectTo: `${siteUrl}${pages.authCallback}`,
+      emailRedirectTo: `${siteUrl}${apiRoutes.authCallback}`,
     },
   });
 
@@ -36,7 +36,7 @@ export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${siteUrl}${pages.authCallback}`,
+      redirectTo: `${siteUrl}${apiRoutes.authCallback}`,
     },
   });
 

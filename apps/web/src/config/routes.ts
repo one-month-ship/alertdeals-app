@@ -5,25 +5,21 @@
 
 export const pages = {
   // Public
-  home: '/',
-  login: '/login',
-  authCallback: '/api/auth/callback',
+  home: "/",
+  login: "/login",
+  authConfirm: "/auth/confirm",
 
   // Protected
-  hotDeals: '/hot-deals',
+  hotDeals: "/hot-deals",
   alerts: {
-    list: '/alerts',
-    new: '/alerts/new',
+    list: "/alerts",
+    new: "/alerts/new",
     edit: (id: string) => `/alerts/${id}/edit`,
   },
-  subscription: '/subscription',
-  account: '/account',
+  subscription: "/subscription",
+  account: "/account",
 } as const;
 
-type ExtractStaticRoutes<T> = T extends string
-  ? T
-  : T extends Record<string, unknown>
-    ? { [K in keyof T]: ExtractStaticRoutes<T[K]> }[keyof T]
-    : never;
-
-export type TStaticRoute = ExtractStaticRoutes<typeof pages>;
+export const apiRoutes = {
+  authCallback: "/api/auth/callback",
+} as const;

@@ -13,8 +13,16 @@ export async function POST(req: Request) {
   const { email } = await req.json();
 
   const db = getDBAdminClient();
+
+  const account = await db.query.accounts.findFirst({
+    where: (table, { eq }) => eq(table.email, email),
+  });
+
+  if (!account) return Response.json({ error: "NO_ACCOUNT" }, { status: 401 });
+
   try {
-    db.update(accounts)
+    await db
+      .update(accounts)
       .set({ confirmedByAdmin: true })
       .where(eq(accounts.email, email));
   } catch (error) {
@@ -22,12 +30,18 @@ export async function POST(req: Request) {
     return Response.json({ error: "UPDATE_ERROR" }, { status: 401 });
   }
 
-  const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+  // Envoie le magic link
+  const { error } = await supabaseAdmin.auth.signInWithOtp({
     email,
-    {
-      redirectTo: `${getSiteUrl()}${pages.authCallback}`,
+    options: {
+      emailRedirectTo: `${getSiteUrl()}${pages.authConfirm}`,
+      shouldCreateUser: false,
     },
-  );
+  });
 
-  return Response.json({ data, error });
+  if (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+
+  return Response.json({ success: true });
 }
