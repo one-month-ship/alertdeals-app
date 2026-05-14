@@ -81,35 +81,27 @@ export async function GET(request: Request) {
 
   // Magic link / invite flow
   if (tokenHash && type) {
-    console.log("[auth/callback] verifyOtp flow", { type });
     const supabase = await createClient();
     const { error: verifyError } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
       type: type as "email" | "invite" | "magiclink" | "recovery",
     });
 
-    if (verifyError) {
-      console.error("[auth/callback] verifyOtp failed", verifyError);
+    if (verifyError)
       return redirectToLogin(origin, mapAuthError(verifyError.message));
-    }
 
-    console.log("[auth/callback] verifyOtp success");
     return handleAuthSuccess(origin);
   }
 
   // OAuth flow (Google)
   if (code) {
-    console.log("[auth/callback] exchangeCode flow");
     const supabase = await createClient();
     const { error: exchangeError } =
       await supabase.auth.exchangeCodeForSession(code);
 
-    if (exchangeError) {
-      console.error("[auth/callback] exchangeCode failed", exchangeError);
+    if (exchangeError)
       return redirectToLogin(origin, mapAuthError(exchangeError.message));
-    }
 
-    console.log("[auth/callback] exchangeCode success");
     return handleAuthSuccess(origin);
   }
 

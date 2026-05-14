@@ -7,7 +7,6 @@ export const pages = {
   // Public
   home: "/",
   login: "/login",
-  authCallback: "/api/auth/callback",
   authConfirm: "/auth/confirm",
 
   // Protected
@@ -24,11 +23,3 @@ export const pages = {
 export const apiRoutes = {
   authCallback: "/api/auth/callback",
 } as const;
-
-type ExtractStaticRoutes<T> = T extends string
-  ? T
-  : T extends Record<string, unknown>
-    ? { [K in keyof T]: ExtractStaticRoutes<T[K]> }[keyof T]
-    : never;
-
-export type TStaticRoute = ExtractStaticRoutes<typeof pages>;
