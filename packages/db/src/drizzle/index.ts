@@ -1,6 +1,8 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from '../schema';
+import { createDrizzle } from './rls/client-wrapper';
+import { decode } from './rls/jwt';
 
 const databaseUrl = process.env.SUPABASE_DATABASE_URL || process.env.POSTGRES_URL;
 if (!databaseUrl) {
@@ -27,14 +29,22 @@ const defaultDBClient = drizzle({
 });
 
 /**
- * Admin DB client — bypasses RLS. Use only on the server side (workers, server routes).
- * Never expose this to client-side code.
+ * Admin DB client — bypasses RLS. Use only for workers/cron/webhooks (no user JWT).
+ * In user-facing server actions, prefer getDBWithTokenClient via createDrizzleSupabaseClient.
  */
 export function getDBAdminClient() {
   return defaultDBClient;
 }
 
+export function getDBWithTokenClient(accessToken: string) {
+  return createDrizzle(decode(accessToken), {
+    admin: defaultDBClient,
+    client: defaultDBClient,
+  });
+}
+
 export type TDBAdminClient = ReturnType<typeof getDBAdminClient>;
+export type TDBWithTokenClient = ReturnType<typeof getDBWithTokenClient>;
 
 export {
   and,

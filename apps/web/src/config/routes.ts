@@ -14,6 +14,7 @@ export const pages = {
   alerts: {
     list: '/alerts',
     new: '/alerts/new',
+    edit: (id: string) => `/alerts/${id}/edit`,
   },
   subscription: '/subscription',
   account: '/account',

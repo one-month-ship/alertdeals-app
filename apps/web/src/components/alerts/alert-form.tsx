@@ -1,6 +1,8 @@
 'use client';
 
-import { createAlert } from '@/actions/alert.actions';
+import { createAlert, updateAlert } from '@/actions/alert.actions';
+import { pages } from '@/config/routes';
+import type { TAccountAlert } from '@/services/alert.service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { getErrorMessage } from '@/utils/error-messages.utils';
 import { alertFormSchema, type TAlertFormData } from '@/validation-schemas';
 import type { TBrand, TLocation, TVehicleModel } from '@alertdeals/db';
 import { ALERT_MODE_DEFINITIONS, EAlertMode } from '@alertdeals/shared';
@@ -36,29 +39,35 @@ type Props = {
   brands: TBrand[];
   vehicleModels: TVehicleModel[];
   isSubscribed: boolean;
+  alert?: TAccountAlert;
 };
 
-export function AlertForm({ brands, vehicleModels, isSubscribed }: Props) {
+export function AlertForm({ brands, vehicleModels, isSubscribed, alert }: Props) {
   const router = useRouter();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const isEditMode = !!alert;
 
   const form = useForm<TAlertFormData>({
     resolver: zodResolver(alertFormSchema),
     defaultValues: {
-      name: null,
-      brandId: null,
-      modelId: null,
-      locationId: null,
-      radiusInKm: null,
-      modelYearMin: null,
-      modelYearMax: null,
-      mileageMin: null,
-      mileageMax: null,
-      priceMin: null,
-      mode: EAlertMode.PRICE_MAX,
-      priceMax: null,
-      marginMinPercentage: null,
-      notificationChannels: { email: true, phone: false, whatsapp: false },
+      name: alert?.name ?? null,
+      brandId: alert?.brandId ?? null,
+      modelId: alert?.modelId ?? null,
+      locationId: alert?.locationId ?? null,
+      radiusInKm: alert?.radiusInKm ?? null,
+      modelYearMin: alert?.modelYearMin ?? null,
+      modelYearMax: alert?.modelYearMax ?? null,
+      mileageMin: alert?.mileageMin ?? null,
+      mileageMax: alert?.mileageMax ?? null,
+      priceMin: alert?.priceMin ?? null,
+      mode: alert?.mode ?? EAlertMode.PRICE_MAX,
+      priceMax: alert?.priceMax ?? null,
+      marginMinPercentage: alert?.marginMinPercentage ?? null,
+      notificationChannels: alert?.notificationChannels ?? {
+        email: true,
+        phone: false,
+        whatsapp: false,
+      },
     },
   });
 
@@ -66,7 +75,9 @@ export function AlertForm({ brands, vehicleModels, isSubscribed }: Props) {
   const selectedMode = useWatch({ control: form.control, name: 'mode' });
   // Local state to display the selected location's name/zipcode in the LocationSearch trigger.
   // The form only stores the locationId, which is what the server action expects.
-  const [selectedLocation, setSelectedLocation] = useState<TLocation | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<TLocation | null>(
+    alert?.location ?? null,
+  );
 
   const filteredModels = useMemo(() => {
     if (!selectedBrandId) return [];
@@ -75,16 +86,22 @@ export function AlertForm({ brands, vehicleModels, isSubscribed }: Props) {
 
   const onSubmit = async (data: TAlertFormData) => {
     setSubmitError(null);
-    const result = await createAlert(data);
-    if (!result.success) {
-      setSubmitError(result.error);
-      return;
+    try {
+      if (isEditMode) {
+        await updateAlert(alert.id, data);
+      } else {
+        await createAlert(data);
+      }
+      toast.success(
+        isEditMode ? 'Alerte mise à jour avec succès !' : 'Alerte créée avec succès !',
+      );
+      router.push(pages.alerts.list);
+    } catch (err) {
+      setSubmitError(getErrorMessage(err));
     }
-    toast.success('Alerte créée avec succès !');
-    router.push('/alerts');
   };
 
-  if (!isSubscribed) {
+  if (!isSubscribed && !isEditMode) {
     return (
       <Card className="border-amber-500/30 bg-amber-500/10">
         <CardHeader>
@@ -95,7 +112,7 @@ export function AlertForm({ brands, vehicleModels, isSubscribed }: Props) {
             La création d'alertes est réservée aux membres abonnés.
           </p>
           <Button asChild>
-            <a href="/subscription">S'abonner</a>
+            <a href={pages.subscription}>S'abonner</a>
           </Button>
         </CardContent>
       </Card>
@@ -427,7 +444,13 @@ export function AlertForm({ brands, vehicleModels, isSubscribed }: Props) {
         )}
 
         <Button type="submit" size="lg" disabled={form.formState.isSubmitting} className="w-full">
-          {form.formState.isSubmitting ? 'Création en cours…' : 'Créer mon alerte'}
+          {form.formState.isSubmitting
+            ? isEditMode
+              ? 'Enregistrement en cours…'
+              : 'Création en cours…'
+            : isEditMode
+              ? 'Enregistrer les modifications'
+              : 'Créer mon alerte'}
         </Button>
       </form>
     </Form>
