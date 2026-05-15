@@ -15,3 +15,5 @@ config.bat
 
 # Supabase CLI temp files
 supabase/.temp/
+
+ClAUDE.md

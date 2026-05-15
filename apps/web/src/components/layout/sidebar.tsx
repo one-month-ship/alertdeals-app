@@ -31,7 +31,6 @@ export const Sidebar = () => {
 
   return (
     <>
-      {/* Mobile top bar */}
       <header className="relative z-20 flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-3 backdrop-blur-xl md:hidden">
         <Link href={pages.hotDeals} className="flex items-center gap-2.5">
           <div className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 to-fuchsia-500 text-white shadow-lg shadow-indigo-500/30">
@@ -49,7 +48,6 @@ export const Sidebar = () => {
         </button>
       </header>
 
-      {/* Sidebar (desktop fixed, mobile drawer) */}
       <aside
         className={cn(
           'fixed inset-y-0 left-0 z-40 w-64 border-r border-white/10 bg-white/5 backdrop-blur-xl transition-transform md:translate-x-0',
@@ -57,7 +55,6 @@ export const Sidebar = () => {
         )}
       >
         <div className="flex h-full flex-col">
-          {/* Brand (desktop) */}
           <Link
             href={pages.hotDeals}
             className="hidden items-center gap-3 border-b border-white/10 px-6 py-5 md:flex"
@@ -68,7 +65,6 @@ export const Sidebar = () => {
             <span className="text-xl font-bold tracking-tight text-white">AlertDeals</span>
           </Link>
 
-          {/* Nav items */}
           <nav className="flex-1 space-y-1 p-3">
             {navItems.map(({ label, href, icon: Icon }) => {
               const active = isActive(href);
@@ -91,7 +87,6 @@ export const Sidebar = () => {
             })}
           </nav>
 
-          {/* Sign out */}
           <div className="border-t border-white/10 p-3">
             <button
               type="button"
@@ -106,7 +101,6 @@ export const Sidebar = () => {
         </div>
       </aside>
 
-      {/* Mobile backdrop */}
       {open && (
         <button
           type="button"

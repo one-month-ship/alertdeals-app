@@ -1,5 +1,5 @@
 import { pages } from "@/config/routes";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getSiteUrl } from "@/utils/get-site-url";
 import { accounts, eq, getDBAdminClient } from "@alertdeals/db";
 
@@ -12,6 +12,7 @@ export async function POST(req: Request) {
 
   const { email } = await req.json();
 
+  const supabaseAdmin = createAdminClient();
   const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
     email,
     {

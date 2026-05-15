@@ -2,15 +2,15 @@
 
 import { CACHE_TAGS } from '@/lib/cache.config';
 import { createDrizzleSupabaseClient } from '@/lib/db';
+import { formatZodError } from '@/lib/validation';
 import { getCurrentAccountId } from '@/services/account.service';
 import { getAccountAlerts } from '@/services/alert.service';
+import { hasActiveSubscription } from '@/services/subscription.service';
 import { alertFormSchema, createAlertSchema } from '@/validation-schemas';
-import { accounts, alerts, eq } from '@alertdeals/db';
+import { alerts, eq } from '@alertdeals/db';
 import {
-  EAccountErrorCode,
   EAlertErrorCode,
   EAlertStatus,
-  EGeneralErrorCode,
   ESubscriptionErrorCode,
   type TAlertStatus,
 } from '@alertdeals/shared';
@@ -21,25 +21,18 @@ export async function createAlert(data: unknown) {
 
   const parseResult = createAlertSchema.safeParse(data);
   if (!parseResult.success) {
-    throw new Error(EGeneralErrorCode.VALIDATION_FAILED);
+    throw new Error(formatZodError(parseResult.error));
   }
   const validated = parseResult.data;
+
+  const isSubscribed = await hasActiveSubscription(accountId);
+  if (!isSubscribed) {
+    throw new Error(ESubscriptionErrorCode.SUBSCRIPTION_REQUIRED);
+  }
 
   const db = await createDrizzleSupabaseClient();
 
   const created = await db.rls(async (tx) => {
-    const [account] = await tx
-      .select({ hasSubscription: accounts.hasSubscription })
-      .from(accounts)
-      .limit(1);
-
-    if (!account) {
-      throw new Error(EAccountErrorCode.ACCOUNT_NOT_FOUND);
-    }
-    if (!account.hasSubscription) {
-      throw new Error(ESubscriptionErrorCode.SUBSCRIPTION_REQUIRED);
-    }
-
     const [row] = await tx
       .insert(alerts)
       .values({
@@ -82,7 +75,7 @@ export async function updateAlert(alertId: string, data: unknown) {
 
   const parseResult = alertFormSchema.safeParse(data);
   if (!parseResult.success) {
-    throw new Error(EGeneralErrorCode.VALIDATION_FAILED);
+    throw new Error(formatZodError(parseResult.error));
   }
   const validated = parseResult.data;
 
@@ -124,19 +117,17 @@ export async function updateAlert(alertId: string, data: unknown) {
 
 export async function updateAlertStatus(alertId: string, status: TAlertStatus) {
   const accountId = await getCurrentAccountId();
+
+  if (status === EAlertStatus.ACTIVE) {
+    const isSubscribed = await hasActiveSubscription(accountId);
+    if (!isSubscribed) {
+      throw new Error(ESubscriptionErrorCode.SUBSCRIPTION_REQUIRED);
+    }
+  }
+
   const db = await createDrizzleSupabaseClient();
 
   const updated = await db.rls(async (tx) => {
-    if (status === EAlertStatus.ACTIVE) {
-      const [account] = await tx
-        .select({ hasSubscription: accounts.hasSubscription })
-        .from(accounts)
-        .limit(1);
-      if (!account?.hasSubscription) {
-        throw new Error(ESubscriptionErrorCode.SUBSCRIPTION_REQUIRED);
-      }
-    }
-
     const [row] = await tx
       .update(alerts)
       .set({ status })

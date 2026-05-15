@@ -24,3 +24,10 @@ export const accounts = pgTable(
 );
 
 export type TAccount = InferSelectModel<typeof accounts>;
+
+export type TAccountSelectedKeys<
+  T extends Partial<Record<keyof TAccount, boolean>>,
+> = {
+  [K in keyof T]: T[K] extends true ? K : never;
+}[keyof T] &
+  keyof TAccount;

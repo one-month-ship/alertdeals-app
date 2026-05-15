@@ -1,13 +1,6 @@
-import { pages } from '@/config/routes';
+import { API_PREFIX, pages } from '@/config/routes';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-
-const PROTECTED_PREFIXES = [
-  pages.hotDeals,
-  pages.alerts.list,
-  pages.subscription,
-  pages.account,
-] as const;
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -40,28 +33,16 @@ export async function updateSession(request: NextRequest) {
   const user = data?.claims;
 
   const { pathname } = request.nextUrl;
-  const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
-  const isAuthRoute = pathname === pages.login || pathname.startsWith('/api/auth');
-  const isHome = pathname === pages.home;
+  const isApiRoute = pathname.startsWith(API_PREFIX);
+  const isAuthCallbackPage = pathname.startsWith('/auth');
+  const isApiOrDashboardRoute = pathname.startsWith(pages.dashboard) || isApiRoute;
+  const loginRedirectionNeeded =
+    !user && pathname !== pages.login && !isApiRoute && !isAuthCallbackPage;
 
-  console.log(user)
-  if (isHome) {
-    return NextResponse.redirect(
-      new URL(user ? pages.hotDeals : pages.login, request.url),
-    );
-  }
-
-  // No user on a protected route → redirect to login
-  if (!user && isProtected) {
-    const url = request.nextUrl.clone();
-    url.pathname = pages.login;
-    return NextResponse.redirect(url);
-  }
-
-  // Logged-in user on auth/login pages → redirect to main feature
-  if (user && isAuthRoute) {
-    return NextResponse.redirect(new URL(pages.hotDeals, request.url));
-  }
+  if (loginRedirectionNeeded)
+    return NextResponse.redirect(new URL(pages.login, request.url));
+  else if (user && !isApiOrDashboardRoute && !isAuthCallbackPage)
+    return NextResponse.redirect(new URL(pages.dashboard, request.url));
 
   // IMPORTANT: return supabaseResponse as-is, don't replace it.
   // Cookies on it must reach the browser to keep the session alive.
