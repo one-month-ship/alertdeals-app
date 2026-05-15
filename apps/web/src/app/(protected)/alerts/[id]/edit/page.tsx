@@ -1,14 +1,9 @@
 import { AlertForm } from '@/components/alerts/alert-form';
-import { pages } from '@/config/routes';
-import { createDrizzleSupabaseClient } from '@/lib/db';
-import { createClient } from '@/lib/supabase/server';
+import { getUserAccount } from '@/services/account.service';
 import { getAlertById } from '@/services/alert.service';
-import {
-  accounts,
-  brands as brandsTable,
-  vehicleModels as vehicleModelsTable,
-} from '@alertdeals/db';
-import { notFound, redirect } from 'next/navigation';
+import { getBrands, getVehicleModels } from '@/services/ad-reference.service';
+import { hasActiveSubscription } from '@/services/subscription.service';
+import { notFound } from 'next/navigation';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -17,32 +12,16 @@ type Props = {
 export default async function EditAlertPage({ params }: Props) {
   const { id } = await params;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect(pages.login);
+  const account = await getUserAccount();
 
-  const alert = await getAlertById(id).catch(() => null);
+  const [alert, brands, vehicleModels, isSubscribed] = await Promise.all([
+    getAlertById(id).catch(() => null),
+    getBrands(),
+    getVehicleModels(),
+    hasActiveSubscription(account.id),
+  ]);
+
   if (!alert) notFound();
-
-  const db = await createDrizzleSupabaseClient();
-
-  const { isSubscribed, brands, vehicleModels } = await db.rls(async (tx) => {
-    const [accountRow] = await tx
-      .select({ hasSubscription: accounts.hasSubscription })
-      .from(accounts)
-      .limit(1);
-    const [brandsRows, vehicleModelsRows] = await Promise.all([
-      tx.select().from(brandsTable),
-      tx.select().from(vehicleModelsTable),
-    ]);
-    return {
-      isSubscribed: accountRow?.hasSubscription ?? false,
-      brands: brandsRows,
-      vehicleModels: vehicleModelsRows,
-    };
-  });
 
   return (
     <div className="px-4 py-8">
