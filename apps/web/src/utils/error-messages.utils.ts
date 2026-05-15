@@ -56,7 +56,8 @@ export const getErrorMessage = (errorOrCode: unknown): string => {
   const code =
     errorOrCode instanceof Error ? errorOrCode.message : String(errorOrCode ?? '');
   return (
-    ERROR_MESSAGES[code as TErrorCode] ??
+    ERROR_MESSAGES[code as TErrorCode] ||
+    code ||
     GENERAL_ERROR_MESSAGES[EGeneralErrorCode.UNKNOWN_ERROR]
   );
 };

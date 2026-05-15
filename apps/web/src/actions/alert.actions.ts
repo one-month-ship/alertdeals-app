@@ -2,6 +2,7 @@
 
 import { CACHE_TAGS } from '@/lib/cache.config';
 import { createDrizzleSupabaseClient } from '@/lib/db';
+import { formatZodError } from '@/lib/validation';
 import { getCurrentAccountId } from '@/services/account.service';
 import { getAccountAlerts } from '@/services/alert.service';
 import { hasActiveSubscription } from '@/services/subscription.service';
@@ -10,7 +11,6 @@ import { alerts, eq } from '@alertdeals/db';
 import {
   EAlertErrorCode,
   EAlertStatus,
-  EGeneralErrorCode,
   ESubscriptionErrorCode,
   type TAlertStatus,
 } from '@alertdeals/shared';
@@ -21,7 +21,7 @@ export async function createAlert(data: unknown) {
 
   const parseResult = createAlertSchema.safeParse(data);
   if (!parseResult.success) {
-    throw new Error(EGeneralErrorCode.VALIDATION_FAILED);
+    throw new Error(formatZodError(parseResult.error));
   }
   const validated = parseResult.data;
 
@@ -75,7 +75,7 @@ export async function updateAlert(alertId: string, data: unknown) {
 
   const parseResult = alertFormSchema.safeParse(data);
   if (!parseResult.success) {
-    throw new Error(EGeneralErrorCode.VALIDATION_FAILED);
+    throw new Error(formatZodError(parseResult.error));
   }
   const validated = parseResult.data;
 
