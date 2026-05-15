@@ -28,11 +28,6 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/*
- * Dark indigo theme — harmonizes with the slate-950 → indigo-950 → slate-900
- * gradient set on the (protected) layout. Cards/popovers use a translucent
- * slate so they sit on top of the gradient as frosted glass.
- */
 :root {
   --background: oklch(0.15 0.03 265);
   --foreground: oklch(0.98 0 0);
