@@ -1,9 +1,9 @@
+import { DashboardLayoutSkeleton } from '@/components/layout/dashboard-layout-skeleton';
+import { Sidebar } from '@/components/layout/sidebar';
 import { getUserAccount } from '@/services/account.service';
 import { Suspense, type ReactNode } from 'react';
-import { ProtectedLayoutSkeleton } from './_components/protected-layout-skeleton';
-import { Sidebar } from './_components/sidebar';
 
-async function ProtectedLayoutInner({ children }: { children: ReactNode }) {
+async function DashboardLayoutInner({ children }: { children: ReactNode }) {
   await getUserAccount();
 
   return (
@@ -20,10 +20,10 @@ async function ProtectedLayoutInner({ children }: { children: ReactNode }) {
   );
 }
 
-const ProtectedLayout = ({ children }: { children: ReactNode }) => (
-  <Suspense fallback={<ProtectedLayoutSkeleton>{children}</ProtectedLayoutSkeleton>}>
-    <ProtectedLayoutInner>{children}</ProtectedLayoutInner>
+const DashboardLayout = ({ children }: { children: ReactNode }) => (
+  <Suspense fallback={<DashboardLayoutSkeleton>{children}</DashboardLayoutSkeleton>}>
+    <DashboardLayoutInner>{children}</DashboardLayoutInner>
   </Suspense>
 );
 
-export default ProtectedLayout;
+export default DashboardLayout;

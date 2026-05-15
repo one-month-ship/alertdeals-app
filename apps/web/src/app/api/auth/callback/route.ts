@@ -41,15 +41,14 @@ async function handleAuthSuccess(origin: string): Promise<NextResponse> {
   if (!user) return redirectToLogin(origin, EAuthErrorCode.AUTH_ERROR);
 
   const db = getDBAdminClient();
-  const [account] = await db
-    .select({
-      id: accounts.id,
-      confirmedByAdmin: accounts.confirmedByAdmin,
-      isFirstConnexion: accounts.isFirstConnexion,
-    })
-    .from(accounts)
-    .where(eq(accounts.id, user.id))
-    .limit(1);
+  const account = await db.query.accounts.findFirst({
+    where: eq(accounts.id, user.id),
+    columns: {
+      id: true,
+      confirmedByAdmin: true,
+      isFirstConnexion: true,
+    },
+  });
 
   if (!account) {
     await supabase.auth.signOut();
