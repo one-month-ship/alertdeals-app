@@ -59,22 +59,62 @@ export function onWhatsAppGroupAdded(
   socket: WASocket,
   handler: GroupAddedHandler,
 ): void {
+  // [DEBUG group-detection] confirme que l'écouteur est bien branché.
+  console.log('[DEBUG group-detection] onWhatsAppGroupAdded listener attaché');
+
   socket.ev.on('groups.upsert', async (groups) => {
+    // [DEBUG group-detection] l'event fire-t-il ? combien de groupes ?
+    console.log(
+      `[DEBUG group-detection] groups.upsert reçu — ${groups.length} groupe(s)`,
+    );
+
     // Numéro du compte central (celui qui est appairé sur ce socket).
     const ourPhone = jidToPhone(socket.user?.id);
-    if (!ourPhone) return;
+    // [DEBUG group-detection] notre numéro central est-il bien résolu ?
+    console.log(
+      `[DEBUG group-detection] socket.user?.id=${socket.user?.id} → ourPhone=${ourPhone}`,
+    );
+    if (!ourPhone) {
+      console.warn('[DEBUG group-detection] ABORT: ourPhone null, event ignoré');
+      return;
+    }
 
     for (const group of groups) {
       const participants = (group.participants ?? []) as GroupParticipantLike[];
+
+      // [DEBUG group-detection] structure brute des participants : on veut voir
+      // si `phoneNumber` est rempli ou si Baileys ne donne que des LID (`id`).
+      console.log(
+        `[DEBUG group-detection] groupe id=${group.id} subject=${group.subject} owner=${group.owner} participants=`,
+        JSON.stringify(
+          participants.map((p) => ({
+            id: p.id,
+            phoneNumber: p.phoneNumber,
+            admin: p.admin,
+          })),
+        ),
+      );
+
       // Numéro réel de chaque participant (depuis `phoneNumber`, pas le LID).
       const numbered = participants
         .map((p) => ({ id: p.id, phone: jidToPhone(p.phoneNumber) }))
         .filter((p): p is { id: string; phone: string } => p.phone !== null);
 
+      // [DEBUG group-detection] combien de participants ont un vrai numéro ?
+      console.log(
+        `[DEBUG group-detection] participants avec numéro résolu: ${numbered.length}/${participants.length} →`,
+        JSON.stringify(numbered),
+      );
+
       // On ne réagit que si notre numéro central est bien membre du groupe
       // (`groups.upsert` peut aussi fire lors d'une resync de session).
       const weAreMember = numbered.some((p) => p.phone === ourPhone);
-      if (!weAreMember) continue;
+      if (!weAreMember) {
+        console.warn(
+          `[DEBUG group-detection] ABORT: notre numéro (${ourPhone}) absent des participants du groupe ${group.id}`,
+        );
+        continue;
+      }
 
       // `addedBy` = l'owner du groupe (le créateur, qui nous a ajoutés).
       // `group.owner` est un LID → on retrouve le participant correspondant
@@ -84,6 +124,11 @@ export function onWhatsAppGroupAdded(
         owner?.phone ??
         numbered.find((p) => p.phone !== ourPhone)?.phone ??
         null;
+
+      // [DEBUG group-detection] qui est désigné comme "addedBy" ?
+      console.log(
+        `[DEBUG group-detection] addedBy résolu=${addedBy} (owner match=${owner?.phone ?? 'aucun'})`,
+      );
 
       try {
         await handler({
@@ -98,5 +143,15 @@ export function onWhatsAppGroupAdded(
         );
       }
     }
+  });
+
+  // [DEBUG group-detection] écouteur temporaire : si `groups.upsert` ne fire
+  // jamais quand le bot est ajouté, c'est probablement cet event qui porte
+  // l'info. Sert juste à confirmer quel event WhatsApp émet réellement.
+  socket.ev.on('group-participants.update', (update) => {
+    console.log(
+      '[DEBUG group-detection] group-participants.update reçu →',
+      JSON.stringify(update),
+    );
   });
 }

@@ -13,6 +13,9 @@ import type { DetectedGroup } from '@alertdeals/whatsapp';
  * erreur ici ne doit pas affecter la connexion WhatsApp.
  */
 export async function handleDetectedGroup(group: DetectedGroup): Promise<void> {
+  // [DEBUG group-detection] le handler est-il bien appelé, et avec quoi ?
+  console.log('[DEBUG group-detection] handleDetectedGroup appelé avec', group);
+
   if (!group.addedBy) {
     console.warn('[whatsapp-group] groupe détecté sans auteur, ignoré', group.groupId);
     return;
@@ -29,6 +32,11 @@ export async function handleDetectedGroup(group: DetectedGroup): Promise<void> {
     columns: { id: true },
     where: sql`regexp_replace(${accounts.whatsappPhoneNumber}, '\\D', '', 'g') = ${group.addedBy}`,
   });
+
+  // [DEBUG group-detection] résultat du matching numéro → compte.
+  console.log(
+    `[DEBUG group-detection] recherche compte avec whatsappPhoneNumber (chiffres) == ${group.addedBy} → ${account ? `trouvé ${account.id}` : 'AUCUN'}`,
+  );
 
   if (!account) {
     // Personne n'a renseigné ce numéro : on ne sait pas à qui rattacher le
