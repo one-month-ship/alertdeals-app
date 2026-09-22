@@ -88,9 +88,10 @@ export async function inviteUser(formData: { email: string }) {
 /**
  * Validate a self-signed-up user (super-admin only).
  *
- * Self-signups stay pending (`confirmedByAdmin = false`) until a super-admin
- * confirms them here. We flip the flag, then send a magic link so the user can
- * sign in — without creating a new auth user (`shouldCreateUser: false`).
+ * When `ADMIN_VALIDATION_REQUIRED=true`, self-signups stay pending
+ * (`confirmedByAdmin = false`) until a super-admin confirms them here. We flip
+ * the flag, then send a magic link so the user can sign in — without creating
+ * a new auth user (`shouldCreateUser: false`).
  */
 export async function validateUser(formData: { email: string }) {
   // Caller must be a logged-in super-admin
