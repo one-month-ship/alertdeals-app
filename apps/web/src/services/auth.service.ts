@@ -1,5 +1,6 @@
 import "server-only";
 
+import { authConfig } from "@/config/auth.config";
 import { createClient } from "@/lib/supabase/server";
 import { accounts, eq, getDBAdminClient } from "@alertdeals/db";
 import { EAuthErrorCode } from "@alertdeals/shared";
@@ -19,10 +20,10 @@ export type TPostAuthResult =
  * (whatever the flow that produced it: verifyOtp, code exchange, or the
  * implicit/hash flow handled client-side then persisted via setSession).
  *
- * Checks the account exists and is confirmed by an admin, then signs out on
- * any failure. Returns a serializable result so it can be consumed both by
- * the auth callback route and by a server action called from the client
- * confirm page.
+ * Checks the account exists and is confirmed by an admin (or auto-confirms it
+ * when admin validation is disabled), then signs out on any failure. Returns
+ * a serializable result so it can be consumed both by the auth callback route
+ * and by a server action called from the client confirm page.
  */
 export async function handlePostAuth(next: string): Promise<TPostAuthResult> {
   const supabase = await createClient();
@@ -53,12 +54,21 @@ export async function handlePostAuth(next: string): Promise<TPostAuthResult> {
     }
 
     if (!account.confirmedByAdmin) {
-      console.warn(
-        "[auth.service] ACCOUNT_PENDING_VALIDATION - not confirmed by admin",
-        { accountId: account.id },
-      );
-      await supabase.auth.signOut();
-      return { ok: false, error: EAuthErrorCode.ACCOUNT_PENDING_VALIDATION };
+      if (authConfig.adminValidationRequired) {
+        console.warn(
+          "[auth.service] ACCOUNT_PENDING_VALIDATION - not confirmed by admin",
+          { accountId: account.id },
+        );
+        await supabase.auth.signOut();
+        return { ok: false, error: EAuthErrorCode.ACCOUNT_PENDING_VALIDATION };
+      }
+
+      // No admin validation: confirm the account itself so it drops out of
+      // the pending list and stays confirmed if validation is re-enabled.
+      await db
+        .update(accounts)
+        .set({ confirmedByAdmin: true })
+        .where(eq(accounts.id, account.id));
     }
   } catch (error) {
     console.error("[auth.service] handlePostAuth threw - signing out", error);
