@@ -1,13 +1,13 @@
-'use server';
+"use server";
 
-import { pages } from '@/config/routes';
-import { stripe } from '@/lib/stripe';
-import { getUserAccount } from '@/services/account.service';
-import { getStripeCustomerId } from '@/services/subscription.service';
-import { ESubscriptionErrorCode, type TErrorCode } from '@alertdeals/shared';
+import { pages } from "@/config/routes";
+import { stripe } from "@/lib/stripe";
+import { getUserAccount } from "@/services/account.service";
+import { getStripeCustomerId } from "@/services/subscription.service";
+import { ESubscriptionErrorCode, type TErrorCode } from "@alertdeals/shared";
 
 if (!process.env.NEXT_PUBLIC_SITE_URL) {
-  throw new Error('NEXT_PUBLIC_SITE_URL is not set');
+  throw new Error("NEXT_PUBLIC_SITE_URL is not set");
 }
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL;
 
@@ -20,7 +20,9 @@ type TCheckoutResult = { url: string | null } | { error: TErrorCode };
  *
  * Returns the hosted checkout URL the client must redirect to.
  */
-export async function createCheckoutSession(priceId: string): Promise<TCheckoutResult> {
+export async function createCheckoutSession(
+  priceId: string,
+): Promise<TCheckoutResult> {
   try {
     const account = await getUserAccount({
       columnsToKeep: { id: true, email: true },
@@ -31,12 +33,13 @@ export async function createCheckoutSession(priceId: string): Promise<TCheckoutR
     const stripeCustomerId = await getStripeCustomerId(account.id);
 
     const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
+      mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${SITE_URL}${pages.subscription}?status=success`,
       cancel_url: `${SITE_URL}${pages.subscription}?status=cancel`,
       customer_email: stripeCustomerId ? undefined : account.email,
       customer: stripeCustomerId || undefined,
+      allow_promotion_codes: true,
       // accountId travels with the session so the webhook can link the new
       // subscription/customer back to the right account on completion.
       metadata: { accountId: account.id },
