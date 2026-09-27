@@ -54,9 +54,13 @@ const STATUS_TONES: Record<string, typeof FALLBACK_TONE> = {
   canceled: FALLBACK_TONE,
 };
 
-// Prices are stored in cents in DB (Stripe convention); we show whole euros.
+// Prices are stored in cents in DB (Stripe convention); we show euros in French
+// format with cents ("19,99"), dropping the decimals only when the amount is round.
 function formatAmount(amountInCents: number): string {
-  return (amountInCents / 100).toFixed(0);
+  const euros = Math.floor(amountInCents / 100);
+  const cents = amountInCents % 100;
+  const base = euros.toLocaleString("fr-FR");
+  return cents === 0 ? base : `${base},${String(cents).padStart(2, "0")}`;
 }
 
 function formatDate(date: Date | string): string {

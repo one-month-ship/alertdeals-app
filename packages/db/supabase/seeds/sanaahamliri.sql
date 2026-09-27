@@ -39006,8 +39006,8 @@ INSERT INTO "public"."matched_ads" ("id", "account_id", "alert_id", "ad_id", "ma
 --
 
 INSERT INTO "public"."plans" ("id", "name", "stripe_price_id", "price_eur", "interval", "description", "is_active", "sort_order") VALUES
-	(1, 'Pro Mensuel', 'price_1TdtEtE2rOg332FNrWq2szkH', 2900, 'month', 'Accès complet à AlertDeals', true, 0),
-	(2, 'Pro Annuel', 'price_1TdtGLE2rOg332FNTyjXiPhE', 29000, 'year', 'Économie de 58€/an', true, 1);
+	(1, 'Pro Mensuel', 'price_1TdtEtE2rOg332FNrWq2szkH', 1999, 'month', 'Accès complet à AlertDeals', true, 0),
+	(2, 'Pro Annuel', 'price_1TdtGLE2rOg332FNTyjXiPhE', 14388, 'year', 'Économie de 96€/an', true, 1);
 
 
 --
