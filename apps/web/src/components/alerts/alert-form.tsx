@@ -32,7 +32,7 @@ import {
 } from "@alertdeals/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { LocationSearch } from "./location-search";
@@ -99,9 +99,10 @@ export function AlertForm({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const isEditMode = !!alert;
 
-  const form = useForm<TAlertFormData>({
-    resolver: zodResolver(alertFormSchema),
-    defaultValues: {
+  // Valeurs initiales du form, dérivées de l'alerte en édition (ou vides en création).
+  // Mémoïsées pour servir à la fois de `defaultValues` et au `reset()` ci-dessous.
+  const defaultValues = useMemo<TAlertFormData>(
+    () => ({
       name: alert?.name ?? "",
       // Platforms disabled since the alert was created are dropped silently
       sources:
@@ -129,7 +130,13 @@ export function AlertForm({
         phone: false,
         whatsapp: false,
       },
-    },
+    }),
+    [alert],
+  );
+
+  const form = useForm<TAlertFormData>({
+    resolver: zodResolver(alertFormSchema),
+    defaultValues,
   });
 
   const selectedBrandIds =
@@ -155,6 +162,17 @@ export function AlertForm({
   const [selectedLocation, setSelectedLocation] = useState<TLocation | null>(
     alert?.location ?? null,
   );
+
+  // Next (cacheComponents) garde les derniers segments visités montés dans un
+  // <Activity> caché : quitter /alerts/new puis y revenir ne remonte PAS le
+  // composant, donc l'état de useForm survivait à la navigation et l'utilisateur
+  // retrouvait les champs de sa saisie précédente. Activity rejoue les effets à
+  // chaque réaffichage : on repart des valeurs par défaut à chaque visite.
+  useEffect(() => {
+    form.reset(defaultValues);
+    setSelectedLocation(alert?.location ?? null);
+    setSubmitError(null);
+  }, [form, defaultValues, alert?.location]);
 
   const filteredModels = useMemo(() => {
     if (selectedBrandIds.length === 0) return [];
