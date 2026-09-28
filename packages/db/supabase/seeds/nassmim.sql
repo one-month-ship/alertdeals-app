@@ -138,8 +138,8 @@ INSERT INTO "auth"."mfa_amr_claims" ("session_id", "created_at", "updated_at", "
 -- Data for Name: accounts; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO "public"."accounts" ("id", "email", "has_subscription", "confirmed_by_admin", "is_first_connexion", "created_at", "whatsapp_phone_number", "whatsapp_is_group") VALUES
-	('9f4c6921-f22b-4b55-b916-94f58d1a65d3', 'nassmim972@gmail.com', true, true, true, '2026-05-22 23:32:23.124994+00', NULL, false);
+INSERT INTO "public"."accounts" ("id", "email", "confirmed_by_admin", "is_first_connexion", "created_at", "whatsapp_phone_number", "whatsapp_is_group") VALUES
+	('9f4c6921-f22b-4b55-b916-94f58d1a65d3', 'nassmim972@gmail.com', true, true, '2026-05-22 23:32:23.124994+00', NULL, false);
 
 
 --

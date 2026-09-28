@@ -201,6 +201,10 @@ async function sendMetaEvent(input: TMetaEventInput): Promise<void> {
         event_time: Math.floor(Date.now() / 1000),
         event_id: input.eventId,
         action_source: 'website',
+        // Obligatoire : le pixel est partagé avec Auto-Prospect et les conversions
+        // personnalisées d'Ads Manager (« URL contient alertdeals.fr ») ne matchent
+        // que sur ce champ. En preview Vercel l'URL est en *.vercel.app, donc ces
+        // événements sont naturellement exclus des conversions de production.
         event_source_url: getSiteUrl(),
         user_data: {
           em: [sha256(input.email)],
