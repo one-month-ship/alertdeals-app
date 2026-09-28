@@ -17,6 +17,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 import { stripe } from '@/lib/stripe';
+import { recordSubscription } from '@/services/marketing.service';
 
 if (!process.env.STRIPE_WEBHOOK_SECRET) {
   throw new Error('STRIPE_WEBHOOK_SECRET is not set');
@@ -116,6 +117,16 @@ export async function POST(request: Request) {
             currentPeriodEnd: getCurrentPeriodEnd(stripeSubscription),
           },
         });
+
+      // Événement Meta Subscribe (pixel côté serveur, ne lève jamais)
+      await recordSubscription({
+        accountId,
+        sessionId: session.id,
+        subscriptionId,
+        amountTotal: session.amount_total,
+        currency: session.currency,
+      });
+
       break;
     }
 

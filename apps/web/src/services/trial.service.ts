@@ -65,16 +65,22 @@ export async function canCreateAlert(accountId: string): Promise<boolean> {
  * Starts the 3-day countdown on first alert creation. Idempotent by design —
  * the WHERE clause only matches when trialEndDate is still NULL, so subsequent
  * calls (or concurrent ones) never extend an in-progress trial.
+ *
+ * Renvoie true seulement quand c'est bien cet appel qui a démarré l'essai, pour que
+ * l'appelant n'envoie l'événement marketing StartTrial qu'une seule fois.
  */
-export async function startTrialCountdown(accountId: string): Promise<void> {
+export async function startTrialCountdown(accountId: string): Promise<boolean> {
   const trialEndDate = new Date();
   trialEndDate.setDate(trialEndDate.getDate() + TRIAL_DURATION_DAYS);
 
   const client = await createDrizzleSupabaseClient();
-  await client.rls((tx) =>
+  const started = await client.rls((tx) =>
     tx
       .update(accounts)
       .set({ trialEndDate })
-      .where(and(eq(accounts.id, accountId), isNull(accounts.trialEndDate))),
+      .where(and(eq(accounts.id, accountId), isNull(accounts.trialEndDate)))
+      .returning({ id: accounts.id }),
   );
+
+  return started.length > 0;
 }

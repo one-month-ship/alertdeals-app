@@ -4,6 +4,7 @@ import { CACHE_TAGS } from '@/lib/cache.config';
 import { createDrizzleSupabaseClient } from '@/lib/db';
 import { getCurrentAccountId } from '@/services/account.service';
 import { getAccountAlerts } from '@/services/alert.service';
+import { recordTrialStart } from '@/services/marketing.service';
 import { canCreateAlert, startTrialCountdown } from '@/services/trial.service';
 import { alertFormSchema, createAlertSchema } from '@/validation-schemas';
 import { alertBrands, alertModels, alerts, eq } from '@alertdeals/db';
@@ -100,7 +101,10 @@ export async function createAlert(data: unknown): Promise<TCreateAlertResult> {
     }
 
     // First alert ever → kick off the 3-day countdown. Idempotent (no-op if already started).
-    await startTrialCountdown(accountId);
+    const trialJustStarted = await startTrialCountdown(accountId);
+
+    // Activation réelle du produit : événement Meta StartTrial (ne lève jamais)
+    if (trialJustStarted) await recordTrialStart(accountId);
 
     updateTag(CACHE_TAGS.alertsByAccount(accountId));
 
