@@ -1,6 +1,15 @@
-import { ADMIN_ROLE_VALUES } from '@alertdeals/shared';
+import { ADMIN_ROLE_VALUES, TAccountAttribution } from '@alertdeals/shared';
 import { InferSelectModel, sql } from 'drizzle-orm';
-import { boolean, pgEnum, pgPolicy, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  jsonb,
+  pgEnum,
+  pgPolicy,
+  pgTable,
+  timestamp,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
 import { authenticatedRole, authUid } from 'drizzle-orm/supabase';
 
 // Platform-level admin roles (null = regular user, no admin rights)
@@ -19,6 +28,8 @@ export const accounts = pgTable(
     // When the cron flips isTrial to false, the user needs an active subscription to continue.
     isTrial: boolean('is_trial').default(true).notNull(),
     trialEndDate: timestamp('trial_end_date', { withTimezone: true }),
+    // Attribution marketing (utm_*, fbclid, gclid) de la visite qui a mené au signup
+    attribution: jsonb().$type<TAccountAttribution>(),
     whatsappPhoneNumber: varchar('whatsapp_phone_number', { length: 64 }),
     whatsappIsGroup: boolean('whatsapp_is_group').default(false).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

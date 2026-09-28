@@ -2,6 +2,7 @@ import "server-only";
 
 import { authConfig } from "@/config/auth.config";
 import { createClient } from "@/lib/supabase/server";
+import { recordSignup } from "@/services/marketing.service";
 import { accounts, eq, getDBAdminClient } from "@alertdeals/db";
 import { EAuthErrorCode } from "@alertdeals/shared";
 
@@ -42,6 +43,7 @@ export async function handlePostAuth(next: string): Promise<TPostAuthResult> {
       where: eq(accounts.id, user.id),
       columns: {
         id: true,
+        email: true,
         confirmedByAdmin: true,
         isFirstConnexion: true,
       },
@@ -68,6 +70,16 @@ export async function handlePostAuth(next: string): Promise<TPostAuthResult> {
       await db
         .update(accounts)
         .set({ confirmedByAdmin: true })
+        .where(eq(accounts.id, account.id));
+    }
+
+    // Première connexion = l'inscription : on rattache la campagne d'origine au compte
+    // (cookie posé par le proxy) et on remonte la conversion à Meta. Ne lève jamais.
+    if (account.isFirstConnexion) {
+      await recordSignup({ id: account.id, email: account.email });
+      await db
+        .update(accounts)
+        .set({ isFirstConnexion: false })
         .where(eq(accounts.id, account.id));
     }
   } catch (error) {

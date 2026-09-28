@@ -4,6 +4,7 @@ export * from './config/ad-source.config';
 export * from './config/ad.config';
 export * from './config/alert.config';
 export * from './config/error-codes';
+export * from './config/marketing.config';
 export * from './config/subscription.config';
 export * from './config/trial.config';
 export * from './utils/crypto.utils';
