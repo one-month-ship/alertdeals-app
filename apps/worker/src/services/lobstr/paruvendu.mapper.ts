@@ -130,6 +130,8 @@ export const mapParuVenduAd: TAdMapper<TAdFromParuVendu> = async (
     initialPublicationDate: toDbDate(publicationDate),
     lastPublicationDate: toDbDate(publicationDate),
     ownerName: ad.seller_name || DEFAULT_OWNER_NAME,
+    // ParuVendu does not say whether the seller is a pro
+    ownerType: null,
     hasBeenBoosted: false,
     isUrgent: false,
     modelYear: ad.year,

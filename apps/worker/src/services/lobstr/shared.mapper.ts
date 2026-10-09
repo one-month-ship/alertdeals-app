@@ -9,6 +9,7 @@ import {
 import {
   normalizeReferenceName,
   parsePhoneNumberWithError,
+  TAdOwnerType,
 } from "@alertdeals/shared";
 import { getVehicleModelLookupKey } from "../ad.service.js";
 import { BRAND_ALIASES, MODEL_ALIASES } from "./aliases.js";
@@ -188,10 +189,38 @@ export const createUnmappedCollector = () => {
       if (id === null) unmapped[field] = raw;
       return id;
     },
+    /**
+     * Records `raw` under `field` without any lookup, for values that map to
+     * an enum rather than a reference table.
+     */
+    record: (field: string, raw: string): void => {
+      unmapped[field] = raw;
+    },
     /** Null when everything mapped (keeps the column null = nothing to review) */
     result: (): Record<string, string> | null =>
       Object.keys(unmapped).length > 0 ? unmapped : null,
   };
+};
+
+/**
+ * Translates a platform's seller-type vocabulary to `ads.ownerType`. An
+ * unknown value is recorded for the weekly review and stored as null (=
+ * "unknown"), so the owner-type alert filter lets the ad through rather than
+ * silently dropping it.
+ */
+export const resolveOwnerType = (
+  unmapped: ReturnType<typeof createUnmappedCollector>,
+  dictionary: Record<string, TAdOwnerType>,
+  raw: string | null | undefined,
+): TAdOwnerType | null => {
+  if (!raw) return null;
+  const key = normalizeKey(raw);
+  const found = Object.entries(dictionary).find(
+    ([k]) => normalizeKey(k) === key,
+  );
+  if (found) return found[1];
+  unmapped.record("ownerType", raw);
+  return null;
 };
 
 /**

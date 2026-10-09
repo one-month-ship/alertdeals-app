@@ -18,11 +18,17 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { pages } from '@/config/routes';
 import type { TAccountAlert } from '@/services/alert.service';
 import { getErrorMessage } from '@/utils/error-messages.utils';
-import { EAlertMode, EAlertStatus, type TAlertStatus } from '@alertdeals/shared';
+import {
+  EAlertMode,
+  EAlertStatus,
+  getAdOwnerTypeConfig,
+  type TAlertStatus,
+} from '@alertdeals/shared';
 import {
   Calendar,
   Gauge,
   Loader2,
+  Store,
   Mail,
   MapPin,
   MessageCircle,
@@ -206,6 +212,15 @@ export function AlertCard({ alert }: Props) {
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-4 shrink-0" />
               <span>Véhicules endommagés ignorés</span>
+            </div>
+          )}
+
+          {alert.ownerType != null && (
+            <div className="flex items-center gap-2">
+              <Store className="size-4 shrink-0" />
+              <span>
+                Vendeurs : {getAdOwnerTypeConfig(alert.ownerType).pluralLabel.toLowerCase()}
+              </span>
             </div>
           )}
 

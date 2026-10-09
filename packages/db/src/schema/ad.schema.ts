@@ -20,9 +20,11 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { authenticatedRole } from 'drizzle-orm/supabase';
-import { AD_SOURCE_VALUES, EAdSource } from '@alertdeals/shared';
+import { AD_OWNER_TYPE_VALUES, AD_SOURCE_VALUES, EAdSource } from '@alertdeals/shared';
 
 export const adSource = pgEnum('ad_source', AD_SOURCE_VALUES);
+// Seller type: private individual or professional dealer
+export const adOwnerType = pgEnum('ad_owner_type', AD_OWNER_TYPE_VALUES);
 
 /**
  * Platform-agnostic comparison key for a reference name: accents stripped,
@@ -83,6 +85,8 @@ export const ads = pgTable(
     isLowPrice: boolean('is_low_price').default(false).notNull(),
     phoneNumber: text('phone_number'),
     ownerName: text('owner_name').notNull(),
+    // Null when the source does not tell whether the seller is a pro
+    ownerType: adOwnerType('owner_type'),
     entryYear: smallint('entry_year'),
     dinPower: smallint('din_power'),
     hasPhone: boolean('has_phone').default(false).notNull(),
@@ -105,6 +109,7 @@ export const ads = pgTable(
     index("ads_subtype_id_idx").on(table.subtypeId),
     index("ads_location_id_idx").on(table.locationId),
     index("ads_has_phone_idx").on(table.hasPhone),
+    index('ads_owner_type_idx').on(table.ownerType),
     index("ads_created_at_idx").on(table.createdAt),
     index("ads_price_idx").on(table.price),    
     index("ads_price_min_idx").on(table.priceMin),    

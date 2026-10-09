@@ -1,5 +1,10 @@
 import { TAdInsert } from "@alertdeals/db";
-import { EAdGoodDeal, EAdSource } from "@alertdeals/shared";
+import {
+  EAdGoodDeal,
+  EAdOwnerType,
+  EAdSource,
+  TAdOwnerType,
+} from "@alertdeals/shared";
 import {
   computeMarketComparison,
   createUnmappedCollector,
@@ -14,6 +19,7 @@ import {
   REF,
   resolveBrandId,
   resolveModelId,
+  resolveOwnerType,
   toDbDate,
   translate,
 } from "./shared.mapper.js";
@@ -135,6 +141,18 @@ const GEAR_BOXES: Record<string, string> = {
   "Semi-automatic": REF.gearBoxes.AUTOMATIC,
 };
 
+// `seller_type` values seen on autoscout24.fr and in the squid doc (EN)
+const OWNER_TYPES: Record<string, TAdOwnerType> = {
+  Dealer: EAdOwnerType.PRO,
+  Professionnel: EAdOwnerType.PRO,
+  Professional: EAdOwnerType.PRO,
+  Pro: EAdOwnerType.PRO,
+  Private: EAdOwnerType.PRIVATE,
+  PrivateSeller: EAdOwnerType.PRIVATE,
+  "Private seller": EAdOwnerType.PRIVATE,
+  Particulier: EAdOwnerType.PRIVATE,
+};
+
 const TYPES: Record<string, string> = {
   Car: REF.types.CAR,
   Motorcycle: REF.types.MOTORBIKE,
@@ -254,6 +272,7 @@ export const mapAutoScout24Ad: TAdMapper<TAdFromAutoScout24> = async (
     initialPublicationDate: toDbDate(firstOnline),
     lastPublicationDate: toDbDate(firstOnline),
     ownerName: ad.seller_name || DEFAULT_OWNER_NAME,
+    ownerType: resolveOwnerType(unmapped, OWNER_TYPES, ad.seller_type),
     hasBeenBoosted: adTier !== null && adTier !== BASE_AD_TIER,
     isUrgent: false,
     modelYear: registrationYear,

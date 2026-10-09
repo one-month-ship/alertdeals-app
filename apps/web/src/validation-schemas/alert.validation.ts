@@ -1,4 +1,5 @@
 import {
+  AD_OWNER_TYPE_VALUES,
   ENABLED_AD_SOURCE_VALUES,
   ALERT_MODE_VALUES,
   EAlertMode,
@@ -66,6 +67,8 @@ export const alertFormSchema = z
     priceMax: optionalNumber(z.coerce.number().positive()),
     marginMinPercentage: optionalNumber(z.coerce.number().positive().max(100)),
     excludeDamaged: z.boolean().default(true),
+    // Typologie d'offre ciblée : null = particuliers et professionnels
+    ownerType: z.preprocess(emptyToNull, z.enum(AD_OWNER_TYPE_VALUES).nullable()),
 
     notificationChannels: notificationChannelsSchema,
   })

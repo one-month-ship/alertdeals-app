@@ -74,6 +74,7 @@ export async function createAlert(data: unknown): Promise<TCreateAlertResult> {
           priceMax: validated.priceMax ?? null,
           marginMinPercentage: validated.marginMinPercentage ?? null,
           excludeDamaged: validated.excludeDamaged,
+          ownerType: validated.ownerType ?? null,
           notificationChannels: validated.notificationChannels,
         })
         .returning({ id: alerts.id });
@@ -153,6 +154,7 @@ export async function updateAlert(
           priceMax: validated.priceMax ?? null,
           marginMinPercentage: validated.marginMinPercentage ?? null,
           excludeDamaged: validated.excludeDamaged,
+          ownerType: validated.ownerType ?? null,
           notificationChannels: validated.notificationChannels,
         })
         .where(eq(alerts.id, alertId))
