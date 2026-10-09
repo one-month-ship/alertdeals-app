@@ -7,8 +7,10 @@ import {
 } from "@alertdeals/db";
 import {
   EAdGoodDeal,
+  EAdOwnerType,
   EAdSource,
   parsePhoneNumberWithError,
+  TAdOwnerType,
 } from "@alertdeals/shared";
 import { customParseInt } from "../../utils/general.utils.js";
 import {
@@ -19,9 +21,16 @@ import {
   DEFAULT_VEHICLE_STATE_ID,
   resolveBrandId,
   resolveModelId,
+  resolveOwnerType,
   toDbDate,
 } from "./shared.mapper.js";
 import { TAdMapper } from "./types.js";
+
+// Leboncoin `owner_type` values
+const OWNER_TYPES: Record<string, TAdOwnerType> = {
+  private: EAdOwnerType.PRIVATE,
+  pro: EAdOwnerType.PRO,
+};
 
 export type TAdFromLeboncoin = {
   id: string;
@@ -191,6 +200,7 @@ export const mapLeboncoinAd: TAdMapper<TAdFromLeboncoin> = async (
     initialPublicationDate: toDbDate(ad.first_publication_date),
     lastPublicationDate: toDbDate(ad.last_publication_date),
     ownerName: ad.owner_name,
+    ownerType: resolveOwnerType(unmapped, OWNER_TYPES, ad.owner_type),
     hasBeenBoosted: ad.is_boosted,
     isUrgent: ad.urgent,
     modelYear: customParseInt(adDetails["Année modèle"]),

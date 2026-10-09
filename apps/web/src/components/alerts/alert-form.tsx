@@ -22,6 +22,7 @@ import { getErrorMessage } from "@/utils/error-messages.utils";
 import { alertFormSchema, type TAlertFormData } from "@/validation-schemas";
 import type { TBrand, TLocation, TVehicleModel } from "@alertdeals/db";
 import {
+  AD_OWNER_TYPE_DEFINITIONS,
   ALERT_MODE_DEFINITIONS,
   DEFAULT_ALERT_SOURCES,
   EAlertMode,
@@ -49,6 +50,11 @@ type Props = {
 const blockNegativeKeystroke = (e: React.KeyboardEvent<HTMLInputElement>) => {
   if (e.key === "-" || e.key === "e" || e.key === "E") e.preventDefault();
 };
+
+// Valeur sentinelle du radio "Type de vendeur" : le <RadioGroup> n'accepte pas
+// `value={null}`, donc "tous" est représenté par cette string et converti en null
+// dans le form (null = particuliers ET professionnels).
+const ALL_OWNER_TYPES_VALUE = "__all__";
 
 // Liste centralisée des canaux de notification.
 // Chaque canal peut porter un `warning` affiché sous la case si elle est cochée
@@ -125,6 +131,7 @@ export function AlertForm({
       priceMax: alert?.priceMax ?? null,
       marginMinPercentage: alert?.marginMinPercentage ?? null,
       excludeDamaged: alert?.excludeDamaged ?? true,
+      ownerType: alert?.ownerType ?? null,
       notificationChannels: alert?.notificationChannels ?? {
         email: true,
         phone: false,
@@ -156,6 +163,14 @@ export function AlertForm({
   // The damage flag is not reported by every platform: their ads pass the filter
   const sourcesWithoutVehicleState = excludeDamaged
     ? getSourcesMissingFilter("vehicleState", selectedSources)
+    : [];
+  const selectedOwnerType = useWatch({
+    control: form.control,
+    name: "ownerType",
+  });
+  // Seller type is not reported by every platform: their ads pass the filter
+  const sourcesWithoutOwnerType = selectedOwnerType
+    ? getSourcesMissingFilter("ownerType", selectedSources)
     : [];
   // Local state to display the selected location's name/zipcode in the LocationSearch trigger.
   // The form only stores the locationId, which is what the server action expects.
@@ -490,6 +505,68 @@ export function AlertForm({
                       value={field.value ?? ""}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="ownerType"
+              render={({ field }) => (
+                <FormItem className="space-y-2 md:col-span-2">
+                  <FormLabel>Type de vendeur</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={(value) =>
+                        field.onChange(
+                          value === ALL_OWNER_TYPES_VALUE ? null : value,
+                        )
+                      }
+                      value={field.value ?? ALL_OWNER_TYPES_VALUE}
+                      className="flex flex-wrap gap-4"
+                    >
+                      <label
+                        htmlFor={`owner-type-${ALL_OWNER_TYPES_VALUE}`}
+                        className="flex cursor-pointer items-center gap-2 text-sm"
+                      >
+                        <RadioGroupItem
+                          id={`owner-type-${ALL_OWNER_TYPES_VALUE}`}
+                          value={ALL_OWNER_TYPES_VALUE}
+                        />
+                        Tous
+                      </label>
+                      {AD_OWNER_TYPE_DEFINITIONS.map((ownerType) => (
+                        <label
+                          key={ownerType.value}
+                          htmlFor={`owner-type-${ownerType.value}`}
+                          className="flex cursor-pointer items-center gap-2 text-sm"
+                        >
+                          <RadioGroupItem
+                            id={`owner-type-${ownerType.value}`}
+                            value={ownerType.value}
+                          />
+                          {ownerType.pluralLabel}
+                        </label>
+                      ))}
+                    </RadioGroup>
+                  </FormControl>
+                  <FormDescription>
+                    Ne recevoir que les annonces de particuliers ou de
+                    professionnels.
+                    {sourcesWithoutOwnerType.length > 0 && (
+                      <>
+                        {" "}
+                        <span className="text-amber-600">
+                          {sourcesWithoutOwnerType
+                            .map(getAdSourceLabel)
+                            .join(", ")}{" "}
+                          n&apos;indique pas le type de vendeur : ses annonces
+                          ne seront pas filtrées.
+                        </span>
+                      </>
+                    )}
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

@@ -1,6 +1,7 @@
 import { TAdReferenceData } from "@alertdeals/db";
 import {
   EAdGoodDeal,
+  EAdOwnerType,
   EAdSource,
   normalizeReferenceName,
 } from "@alertdeals/shared";
@@ -201,6 +202,7 @@ describe("mapAutoScout24Ad", () => {
       technicalInspectionYear: 2028,
       picture: "https://img/1.webp",
       ownerName: "Autohaus Geschw.Schneider GmbH",
+      ownerType: EAdOwnerType.PRO,
     });
   });
 
@@ -225,8 +227,19 @@ describe("mapAutoScout24Ad", () => {
       goodDealName: EAdGoodDeal.GOOD,
       marketPositionId: 4,
       ownerName: "Particulier",
+      ownerType: EAdOwnerType.PRIVATE,
       unmappedValues: null,
     });
+  });
+
+  it("stores an unknown seller type as null and flags it for review", async () => {
+    const result = await mapAutoScout24Ad(
+      makeDb(),
+      { ...ad, seller_type: "Agence" },
+      makeReferenceData(),
+    );
+    expect(result?.ownerType).toBeNull();
+    expect(result?.unmappedValues).toEqual({ ownerType: "Agence" });
   });
 
   it("prefers the numeric priceEvaluation over the displayed label", async () => {
@@ -401,8 +414,18 @@ describe("mapLaCentraleAd", () => {
       priceMin: 126805,
       goodDealName: EAdGoodDeal.GOOD,
       marketPositionId: 4,
+      ownerType: EAdOwnerType.PRO,
     });
     expect(result?.pictures).toHaveLength(2);
+  });
+
+  it("maps PART sellers to private", async () => {
+    const result = await mapLaCentraleAd(
+      makeDb(),
+      { ...ad, customer_type: "PART" },
+      makeReferenceData(),
+    );
+    expect(result?.ownerType).toBe(EAdOwnerType.PRIVATE);
   });
 
   it("maps the real payload vocabulary (SUV_4X4_CROSSOVER, EQUITABLE_DEAL, MANUAL)", async () => {
@@ -484,6 +507,8 @@ describe("mapParuVenduAd", () => {
       fuelId: 3,
       modelYear: 2024,
       ownerName: "ALAIN V.",
+      // ParuVendu never says whether the seller is a pro
+      ownerType: null,
       description: "Full description",
     });
     expect(result?.initialPublicationDate).toBe(

@@ -24,7 +24,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { authenticatedRole, authUid } from 'drizzle-orm/supabase';
 import { accounts } from './account.schema';
-import { adSource, brands, locations, vehicleModels } from './ad.schema';
+import { adOwnerType, adSource, brands, locations, vehicleModels } from './ad.schema';
 
 export const alertStatus = pgEnum('alert_status', ALERT_STATUS_VALUES);
 export const alertMode = pgEnum('alert_mode', ALERT_MODE_VALUES);
@@ -50,6 +50,8 @@ export const alerts = pgTable(
     marginMinPercentage: real('margin_min_percentage'),
     // Skip wrecks: a very low price on a damaged car is not a deal
     excludeDamaged: boolean('exclude_damaged').notNull().default(true),
+    // Seller type the alert targets (private / pro); null = both
+    ownerType: adOwnerType('owner_type'),
     notificationChannels: jsonb('notification_channels')
       .$type<TAlertNotificationChannels>()
       .notNull(),

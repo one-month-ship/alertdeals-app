@@ -88,10 +88,13 @@ export const getAdSourceLabel = (source: TAdSource): string => {
  * - Vehicle state: Leboncoin details it, AutoScout24 only reports whether the
  *   car is currently damaged (enough to exclude wrecks); LaCentrale and
  *   ParuVendu give nothing.
+ * - Owner type (private / pro): Leboncoin, AutoScout24 and LaCentrale flag the
+ *   seller; ParuVendu does not.
  */
 export const FILTER_SOURCE_AVAILABILITY = {
   marginMin: [EAdSource.LEBONCOIN, EAdSource.LACENTRALE],
   vehicleState: [EAdSource.LEBONCOIN, EAdSource.AUTOSCOUT24],
+  ownerType: [EAdSource.LEBONCOIN, EAdSource.AUTOSCOUT24, EAdSource.LACENTRALE],
 } as const satisfies Record<string, readonly TAdSource[]>;
 
 export type TSourceRestrictedFilter = keyof typeof FILTER_SOURCE_AVAILABILITY;

@@ -1,5 +1,10 @@
 import { TAdInsert } from "@alertdeals/db";
-import { EAdGoodDeal, EAdSource } from "@alertdeals/shared";
+import {
+  EAdGoodDeal,
+  EAdOwnerType,
+  EAdSource,
+  TAdOwnerType,
+} from "@alertdeals/shared";
 import {
   computeMarketComparison,
   createUnmappedCollector,
@@ -14,6 +19,7 @@ import {
   REF,
   resolveBrandId,
   resolveModelId,
+  resolveOwnerType,
   toDbDate,
   translate,
 } from "./shared.mapper.js";
@@ -113,6 +119,14 @@ const GEAR_BOXES: Record<string, string> = {
   MECANIQUE: REF.gearBoxes.MANUAL,
 };
 
+// LaCentrale `customer_type` values
+const OWNER_TYPES: Record<string, TAdOwnerType> = {
+  PRO: EAdOwnerType.PRO,
+  PROFESSIONNEL: EAdOwnerType.PRO,
+  PART: EAdOwnerType.PRIVATE,
+  PARTICULIER: EAdOwnerType.PRIVATE,
+};
+
 const TYPES: Record<string, string> = {
   AUTO: REF.types.CAR,
   MOTO: REF.types.MOTORBIKE,
@@ -198,6 +212,7 @@ export const mapLaCentraleAd: TAdMapper<TAdFromLaCentrale> = async (
     initialPublicationDate: toDbDate(ad.first_online_date),
     lastPublicationDate: toDbDate(ad.last_update ?? ad.first_online_date),
     ownerName: ad.contact_name || ad.seller_name || DEFAULT_OWNER_NAME,
+    ownerType: resolveOwnerType(unmapped, OWNER_TYPES, ad.customer_type),
     hasBeenBoosted: false,
     isUrgent: false,
     modelYear: ad.year,

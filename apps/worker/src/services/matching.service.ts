@@ -1,6 +1,7 @@
 import {
   ads,
   and,
+  eq,
   getDBAdminClient,
   gte,
   inArray,
@@ -68,6 +69,15 @@ export async function findMatchedAdIdsForAccount(
     if (alert.excludeDamaged) {
       conditions.push(
         or(ne(ads.vehicleStateId, DAMAGED_VEHICLE_STATE_ID), isNull(ads.vehicleStateId))!,
+      );
+    }
+
+    // Typologie d'offre (particulier / pro) : null sur l'alerte = les deux.
+    // Les annonces dont la source ne renseigne pas le type (ParuVendu) ou
+    // dont la valeur n'a pas été reconnue passent le filtre, comme pour l'état.
+    if (alert.ownerType != null) {
+      conditions.push(
+        or(eq(ads.ownerType, alert.ownerType), isNull(ads.ownerType))!,
       );
     }
 
