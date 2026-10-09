@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { pages } from "@/config/routes";
 import type { TAdWithFullRelations } from "@/services/ad.service";
 import { getMarginPresentation } from "@/utils/margin.utils";
-import { getAdSourceLabel } from "@alertdeals/shared";
+import { getAdOwnerTypeLabel, getAdSourceLabel } from "@alertdeals/shared";
 import {
   ArrowLeft,
   Award,
@@ -356,6 +356,12 @@ export function VehicleDetails({ ad }: Props) {
                     label="Vendeur"
                   >
                     {ad.ownerName}
+                    {/* Typologie d'offre (particulier / pro) quand la source la renseigne */}
+                    {ad.ownerType && (
+                      <Badge variant="secondary" className="ml-2">
+                        {getAdOwnerTypeLabel(ad.ownerType)}
+                      </Badge>
+                    )}
                   </ContactRow>
                 )}
               </CardContent>

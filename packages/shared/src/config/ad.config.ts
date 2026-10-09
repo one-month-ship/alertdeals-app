@@ -43,3 +43,50 @@ export const getAdGoodDealConfig = (value: string | null | undefined) => {
   if (!value) return null;
   return AD_GOOD_DEAL_DEFINITIONS.find((d) => d.value === value) ?? null;
 };
+
+/**
+ * Seller type of a listing ("typologie d'offre"): private individual or
+ * professional dealer. Stored on `ads.owner_type` (null = the source does not
+ * say) and used as an alert criterion (`alerts.owner_type`, null = both).
+ */
+export const AD_OWNER_TYPE_DEFINITIONS = [
+  {
+    key: 'PRIVATE',
+    value: 'private',
+    label: 'Particulier',
+    pluralLabel: 'Particuliers',
+    description: 'Annonces publiées par des particuliers',
+  },
+  {
+    key: 'PRO',
+    value: 'pro',
+    label: 'Professionnel',
+    pluralLabel: 'Professionnels',
+    description: 'Annonces publiées par des professionnels (garages, concessions…)',
+  },
+] as const;
+
+export const EAdOwnerType = Object.fromEntries(
+  AD_OWNER_TYPE_DEFINITIONS.map((d) => [d.key, d.value]),
+) as {
+  [K in (typeof AD_OWNER_TYPE_DEFINITIONS)[number]['key']]: Extract<
+    (typeof AD_OWNER_TYPE_DEFINITIONS)[number],
+    { key: K }
+  >['value'];
+};
+
+export type TAdOwnerType = (typeof AD_OWNER_TYPE_DEFINITIONS)[number]['value'];
+
+export const AD_OWNER_TYPE_VALUES = AD_OWNER_TYPE_DEFINITIONS.map((d) => d.value) as [
+  TAdOwnerType,
+  ...TAdOwnerType[],
+];
+
+export const getAdOwnerTypeConfig = (value: TAdOwnerType) => {
+  const config = AD_OWNER_TYPE_DEFINITIONS.find((d) => d.value === value);
+  if (!config) throw new Error(`Invalid ad owner type: ${value}`);
+  return config;
+};
+
+export const getAdOwnerTypeLabel = (value: TAdOwnerType): string =>
+  getAdOwnerTypeConfig(value).label;
