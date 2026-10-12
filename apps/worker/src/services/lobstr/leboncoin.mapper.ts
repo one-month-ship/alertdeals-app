@@ -168,6 +168,15 @@ export type TAdFromLeboncoin = {
 };
 
 /**
+ * The model as Leboncoin displays it ("Modèle", same value as the u_car_model
+ * search parameter), which is the naming of our model reference.
+ * more_details.model is a narrower list that returns "Autres" for many current
+ * models (Hilux, Spring, C5 Aircross…): only a last resort.
+ */
+const getLeboncoinModel = (ad: TAdFromLeboncoin): string =>
+  ad.details["Modèle"] || ad.more_details.u_car_model || ad.more_details.model;
+
+/**
  * Maps a single Lobstr ad payload to our schema's TAdInsert.
  * - Computes `isLowPrice`, `goodDealName`, and the 4 margin fields.
  * - Looks up FKs via the prebuilt reference Maps; auto-creates missing brands/models.
@@ -230,7 +239,7 @@ export const mapLeboncoinAd: TAdMapper<TAdFromLeboncoin> = async (
     ? await resolveModelId(
         db,
         referenceData,
-        adMoreDetails.model,
+        getLeboncoinModel(ad),
         adData.brandId,
       )
     : null;
