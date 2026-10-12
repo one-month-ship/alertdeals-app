@@ -5,9 +5,9 @@
   "type": "module",
   "main": "./src/index.ts",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "echo 'no build needed - tsx runs ts directly'",
-    "start": "tsx src/index.ts",
+    "dev": "node init && tsx watch src/index.ts",
+    "build": "node init && echo 'no build needed - tsx runs ts directly'",
+    "start": "node init && tsx src/index.ts",
     "pair-whatsapp": "tsx scripts/pair-whatsapp.ts",
     "lint": "echo 'no lint configured'",
     "typecheck": "tsc --noEmit",
