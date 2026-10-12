@@ -8,6 +8,7 @@ import {
 import { describe, expect, it, vi } from "vitest";
 import { mapAutoScout24Ad, TAdFromAutoScout24 } from "../autoscout24.mapper.js";
 import { mapLaCentraleAd, TAdFromLaCentrale } from "../lacentrale.mapper.js";
+import { mapLeboncoinAd, TAdFromLeboncoin } from "../leboncoin.mapper.js";
 import { mapParuVenduAd, TAdFromParuVendu } from "../paruvendu.mapper.js";
 import { parsePhone } from "../shared.mapper.js";
 import { TDBClient } from "../types.js";
@@ -532,6 +533,90 @@ describe("mapParuVenduAd", () => {
       makeReferenceData(),
     );
     expect(result).toBeNull();
+  });
+});
+
+describe("mapLeboncoinAd", () => {
+  // Trimmed from a real Lobstr payload: more_details.model says "Autres" while
+  // the displayed model ("Modèle", u_car_model) is "Hilux"
+  const ad = {
+    annonce_id: "3240212679",
+    title: "Toyota HILUX 3.0 D-4D 171 4WD Double Cab",
+    description: "",
+    price: 20990,
+    url: "https://www.leboncoin.fr/ad/voitures/3240212679",
+    phone: null,
+    picture: "https://img/1.jpg",
+    pictures: "https://img/1.jpg,https://img/2.jpg",
+    first_publication_date: "2026-07-27T10:38:58Z",
+    last_publication_date: "2026-10-11T15:54:01Z",
+    owner_name: "Garage",
+    owner_type: "1",
+    is_boosted: true,
+    urgent: false,
+    no_salesmen: true,
+    is_mobile: false,
+    category_name: "Voitures",
+    postal_code: "28600",
+    details: {
+      Marque: "TOYOTA",
+      Modèle: "Hilux",
+      "Année modèle": "2013",
+      "Date de première mise en circulation": "04/2013",
+      Kilométrage: "286500 km",
+      "Boîte de vitesse": "Automatique",
+      "Nombre de place(s)": "5",
+    },
+    more_details: {
+      brand: "Toyota",
+      model: "Autres",
+      u_car_brand: "TOYOTA",
+      u_car_model: "Hilux",
+      fuel: "Diesel",
+      car_price_min: "14830",
+      car_price_max: "16390",
+      car_price_positioning: "Estimation indisponible",
+      old_price: "22990",
+      horse_power_din: "171 Ch",
+      vehicle_interior_specs: "Climatisation, Sièges chauffants",
+      vehicle_specifications: "",
+    },
+  } as unknown as TAdFromLeboncoin;
+
+  const makeLeboncoinReferenceData = () => {
+    const ref = makeReferenceData();
+    ref.vehicleModels.set("10:Hilux", 102);
+    ref.vehicleModels.set("10:Autres", 103);
+    return ref;
+  };
+
+  it("maps the displayed model, not the narrower more_details.model", async () => {
+    const result = await mapLeboncoinAd(
+      makeDb(),
+      ad,
+      makeLeboncoinReferenceData(),
+    );
+
+    expect(result).toMatchObject({ brandId: 10, modelId: 102 });
+  });
+
+  it("falls back to u_car_model, then more_details.model", async () => {
+    const ref = makeLeboncoinReferenceData();
+    const withoutDisplayedModel = {
+      ...ad,
+      details: { ...ad.details, Modèle: "" },
+    };
+    expect(
+      await mapLeboncoinAd(makeDb(), withoutDisplayedModel, ref),
+    ).toMatchObject({ modelId: 102 });
+
+    const withLegacyModelOnly = {
+      ...withoutDisplayedModel,
+      more_details: { ...ad.more_details, u_car_model: "" },
+    };
+    expect(
+      await mapLeboncoinAd(makeDb(), withLegacyModelOnly, ref),
+    ).toMatchObject({ modelId: 103 });
   });
 });
 
