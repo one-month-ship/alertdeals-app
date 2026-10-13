@@ -64,7 +64,19 @@ const CHANNEL_OPTIONS: {
   label: string;
   warning?: React.ReactNode;
 }[] = [
-  { key: "email", label: "Email" },
+  {
+    key: "email",
+    label: "Email",
+    warning: (
+      <>
+        Nos emails peuvent arriver dans tes spams. Regarde demain à partir de
+        10h dans tes courriers indésirables et marque{" "}
+        <span className="font-medium">contact@alertdeals.fr</span> comme
+        expéditeur fiable (« Non spam »), pour recevoir les prochaines alertes
+        directement dans ta boîte de réception.
+      </>
+    ),
+  },
   {
     key: "phone",
     label: "Téléphone",
