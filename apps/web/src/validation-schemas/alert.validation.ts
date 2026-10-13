@@ -35,18 +35,11 @@ export const alertFormSchema = z
       .array(z.enum(ENABLED_AD_SOURCE_VALUES))
       .min(1, 'Sélectionnez au moins une plateforme'),
 
-    // Marque ET modèle obligatoires : une alerte "tous les véhicules sous X €"
-    // n'est pas une recherche de bonne affaire, c'est un flux Leboncoin déguisé.
-    // Elle matche tout, consomme du quota Lobstr pour rien et noie l'utilisateur.
-    brandIds: z
-      .array(z.number().int().positive())
-      .min(1, 'Sélectionnez au moins une marque'),
-    modelIds: z
-      .array(z.number().int().positive())
-      .min(
-        1,
-        "Sélectionnez au moins un modèle : une alerte sans modèle précis ne permet pas de repérer les bonnes affaires",
-      ),
+    // Optionnels ici : l'obligation dépend du mode (voir le refine PRICE_MAX
+    // plus bas). En mode marge, le revendeur se moque du modèle : la marge est
+    // calculée par rapport au marché, quel que soit le véhicule.
+    brandIds: z.array(z.number().int().positive()).default([]),
+    modelIds: z.array(z.number().int().positive()).default([]),
     locationId: requiredNumber(
       z.coerce.number().int().positive(),
       'La localisation est requise',
@@ -110,6 +103,19 @@ export const alertFormSchema = z
       path: ['mileageMin'],
     },
   )
+  // Un prix max n'a de sens que pour un modèle précis : fixer "10 000 €" veut
+  // dire qu'on sait ce que vaut le véhicule. Sans modèle, c'est "tous les
+  // véhicules sous X €" : pas une bonne affaire, juste un flux Leboncoin qui
+  // matche tout et brûle du quota Lobstr pour rien.
+  .refine((data) => data.mode !== EAlertMode.PRICE_MAX || data.brandIds.length > 0, {
+    message: 'Un prix max suppose de savoir ce que vaut le véhicule : sélectionnez une marque',
+    path: ['brandIds'],
+  })
+  .refine((data) => data.mode !== EAlertMode.PRICE_MAX || data.modelIds.length > 0, {
+    message:
+      'Un prix max suppose de savoir ce que vaut le véhicule : sélectionnez au moins un modèle',
+    path: ['modelIds'],
+  })
   .refine(
     (data) =>
       !(
