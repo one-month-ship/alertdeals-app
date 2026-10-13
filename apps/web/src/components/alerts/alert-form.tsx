@@ -161,6 +161,8 @@ export function AlertForm({
   const selectedBrandIds =
     useWatch({ control: form.control, name: "brandIds" }) ?? [];
   const selectedMode = useWatch({ control: form.control, name: "mode" });
+  // Marque/modèle ne sont obligatoires qu'en mode prix max (cf. schéma Zod).
+  const isPriceMaxMode = selectedMode === EAlertMode.PRICE_MAX;
   const selectedSources =
     useWatch({ control: form.control, name: "sources" }) ?? [];
   // Margin mode needs a market estimate, which not every platform provides
@@ -322,7 +324,7 @@ export function AlertForm({
               name="brandIds"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Marques *</FormLabel>
+                  <FormLabel>Marques{isPriceMaxMode && " *"}</FormLabel>
                   <FormControl>
                     <MultiSelect
                       options={brands}
@@ -344,7 +346,11 @@ export function AlertForm({
                           ),
                         );
                       }}
-                      placeholder="Choisissez une ou plusieurs marques"
+                      placeholder={
+                        isPriceMaxMode
+                          ? "Choisissez une ou plusieurs marques"
+                          : "Toutes les marques"
+                      }
                       countLabel="marques choisies"
                     />
                   </FormControl>
@@ -358,7 +364,7 @@ export function AlertForm({
               name="modelIds"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Modèles *</FormLabel>
+                  <FormLabel>Modèles{isPriceMaxMode && " *"}</FormLabel>
                   <FormControl>
                     <MultiSelect
                       options={filteredModels}
@@ -368,7 +374,9 @@ export function AlertForm({
                       placeholder={
                         selectedBrandIds.length === 0
                           ? "Sélectionnez d'abord une marque"
-                          : "Choisissez un ou plusieurs modèles"
+                          : isPriceMaxMode
+                            ? "Choisissez un ou plusieurs modèles"
+                            : "Tous les modèles"
                       }
                       countLabel="modèles choisis"
                     />
