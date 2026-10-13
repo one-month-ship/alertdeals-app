@@ -322,7 +322,7 @@ export function AlertForm({
               name="brandIds"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Marques</FormLabel>
+                  <FormLabel>Marques *</FormLabel>
                   <FormControl>
                     <MultiSelect
                       options={brands}
@@ -344,7 +344,7 @@ export function AlertForm({
                           ),
                         );
                       }}
-                      placeholder="Toutes les marques"
+                      placeholder="Choisissez une ou plusieurs marques"
                       countLabel="marques choisies"
                     />
                   </FormControl>
@@ -358,7 +358,7 @@ export function AlertForm({
               name="modelIds"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Modèles</FormLabel>
+                  <FormLabel>Modèles *</FormLabel>
                   <FormControl>
                     <MultiSelect
                       options={filteredModels}
@@ -368,7 +368,7 @@ export function AlertForm({
                       placeholder={
                         selectedBrandIds.length === 0
                           ? "Sélectionnez d'abord une marque"
-                          : "Tous les modèles"
+                          : "Choisissez un ou plusieurs modèles"
                       }
                       countLabel="modèles choisis"
                     />

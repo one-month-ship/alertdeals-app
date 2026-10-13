@@ -35,8 +35,18 @@ export const alertFormSchema = z
       .array(z.enum(ENABLED_AD_SOURCE_VALUES))
       .min(1, 'Sélectionnez au moins une plateforme'),
 
-    brandIds: z.array(z.number().int().positive()).default([]),
-    modelIds: z.array(z.number().int().positive()).default([]),
+    // Marque ET modèle obligatoires : une alerte "tous les véhicules sous X €"
+    // n'est pas une recherche de bonne affaire, c'est un flux Leboncoin déguisé.
+    // Elle matche tout, consomme du quota Lobstr pour rien et noie l'utilisateur.
+    brandIds: z
+      .array(z.number().int().positive())
+      .min(1, 'Sélectionnez au moins une marque'),
+    modelIds: z
+      .array(z.number().int().positive())
+      .min(
+        1,
+        "Sélectionnez au moins un modèle : une alerte sans modèle précis ne permet pas de repérer les bonnes affaires",
+      ),
     locationId: requiredNumber(
       z.coerce.number().int().positive(),
       'La localisation est requise',
@@ -98,6 +108,19 @@ export const alertFormSchema = z
     {
       message: 'Le kilométrage min doit être inférieur ou égal au max',
       path: ['mileageMin'],
+    },
+  )
+  .refine(
+    (data) =>
+      !(
+        data.mode === EAlertMode.PRICE_MAX &&
+        data.priceMin != null &&
+        data.priceMax != null &&
+        data.priceMin >= data.priceMax
+      ),
+    {
+      message: "Le prix minimum doit être strictement inférieur au prix déclencheur d'alerte",
+      path: ['priceMin'],
     },
   )
   .refine(
