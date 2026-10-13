@@ -35,6 +35,9 @@ export const alertFormSchema = z
       .array(z.enum(ENABLED_AD_SOURCE_VALUES))
       .min(1, 'Sélectionnez au moins une plateforme'),
 
+    // Optionnels ici : l'obligation dépend du mode (voir le refine PRICE_MAX
+    // plus bas). En mode marge, le revendeur se moque du modèle : la marge est
+    // calculée par rapport au marché, quel que soit le véhicule.
     brandIds: z.array(z.number().int().positive()).default([]),
     modelIds: z.array(z.number().int().positive()).default([]),
     locationId: requiredNumber(
@@ -98,6 +101,32 @@ export const alertFormSchema = z
     {
       message: 'Le kilométrage min doit être inférieur ou égal au max',
       path: ['mileageMin'],
+    },
+  )
+  // Un prix max n'a de sens que pour un modèle précis : fixer "10 000 €" veut
+  // dire qu'on sait ce que vaut le véhicule. Sans modèle, c'est "tous les
+  // véhicules sous X €" : pas une bonne affaire, juste un flux Leboncoin qui
+  // matche tout et brûle du quota Lobstr pour rien.
+  .refine((data) => data.mode !== EAlertMode.PRICE_MAX || data.brandIds.length > 0, {
+    message: 'Un prix max suppose de savoir ce que vaut le véhicule : sélectionnez une marque',
+    path: ['brandIds'],
+  })
+  .refine((data) => data.mode !== EAlertMode.PRICE_MAX || data.modelIds.length > 0, {
+    message:
+      'Un prix max suppose de savoir ce que vaut le véhicule : sélectionnez au moins un modèle',
+    path: ['modelIds'],
+  })
+  .refine(
+    (data) =>
+      !(
+        data.mode === EAlertMode.PRICE_MAX &&
+        data.priceMin != null &&
+        data.priceMax != null &&
+        data.priceMin >= data.priceMax
+      ),
+    {
+      message: "Le prix minimum doit être strictement inférieur au prix déclencheur d'alerte",
+      path: ['priceMin'],
     },
   )
   .refine(
