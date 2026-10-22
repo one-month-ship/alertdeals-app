@@ -6,17 +6,31 @@ import {
 } from "@alertdeals/db";
 import { EAlertStatus } from "@alertdeals/shared";
 import { Job } from "bullmq";
+import { DAILY_ORCHESTRATOR_JOB_TIMEOUT_MS } from "../config/index.js";
 import { expireTrials } from "../services/expire-trials.service.js";
 import { findMatchedAdIdsForAccount } from "../services/matching.service.js";
 import { dispatchAlertMatchNotifications } from "../services/notification.service.js";
 import { pauseUnsubscribedAlerts } from "../services/pause-unsubscribed-alerts.service.js";
+import { withTimeout } from "../utils/general.utils.js";
 
 interface DailyOrchestratorJob {
   triggeredAt: string;
   source: string;
 }
 
+/**
+ * Bounded so a hung DB round-trip can't leave the job `active` forever and
+ * stall the queue — see SCRAPING_JOB_TIMEOUT_MS for the full rationale.
+ */
 export async function dailyOrchestratorWorker(job: Job<DailyOrchestratorJob>) {
+  return withTimeout(
+    runDailyOrchestrator(),
+    DAILY_ORCHESTRATOR_JOB_TIMEOUT_MS,
+    `[daily-orchestrator] job ${job.id}`,
+  );
+}
+
+async function runDailyOrchestrator() {
   const startTime = Date.now();
   const db = getDBAdminClient();
 

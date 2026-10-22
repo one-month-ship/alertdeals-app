@@ -3,4 +3,6 @@ export {
   NON_RETRYABLE_HTTP_CODES,
   isRetryableHttpCode,
   RETRY_CONFIG,
+  SCRAPING_JOB_TIMEOUT_MS,
+  DAILY_ORCHESTRATOR_JOB_TIMEOUT_MS,
 } from './worker.config.js';

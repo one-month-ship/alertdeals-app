@@ -1,7 +1,7 @@
 import { Worker } from "bullmq";
 import express, { Request, Response } from "express";
 import { Server } from "http";
-import { queues } from "./queues/index.js";
+import { getAllQueuesStats, queues } from "./queues/index.js";
 import { connection } from "./redis.js";
 import routes from "./routes/index.js";
 import {
@@ -18,8 +18,37 @@ let workers: Worker[] = [];
 
 app.use(express.json({ limit: "50mb" }));
 
-app.get("/health", (_req: Request, res: Response) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+// Au-delà, la file n'avance manifestement plus : un monitoring externe peut
+// s'en servir pour alerter. Les runs Lobstr arrivent ~3 fois par jour, donc un
+// backlog durable à deux chiffres n'est jamais normal.
+const QUEUE_BACKLOG_WARN_THRESHOLD = 10;
+
+/**
+ * Healthcheck Railway (cf. railway.json) — renvoie TOUJOURS 200 pour ne pas
+ * déclencher de redéploiement en boucle, mais expose l'état des queues pour
+ * qu'un monitoring externe détecte un backlog. Sans ça, 6 jours d'ingestion
+ * morte sont passés inaperçus (16/10/2026) : le process répondait "ok" alors
+ * que la queue scraping était bloquée.
+ */
+app.get("/health", async (_req: Request, res: Response) => {
+  const payload: Record<string, unknown> = {
+    status: "ok",
+    timestamp: new Date().toISOString(),
+  };
+
+  try {
+    const stats = await getAllQueuesStats();
+    payload.queues = stats;
+    payload.degraded = stats.some(
+      (queue) => queue.waiting > QUEUE_BACKLOG_WARN_THRESHOLD,
+    );
+  } catch (error) {
+    // Redis injoignable : on le signale sans faire échouer le healthcheck.
+    payload.queues = "unavailable";
+    payload.queuesError = error instanceof Error ? error.message : String(error);
+  }
+
+  res.json(payload);
 });
 
 // /cron et /whatsapp sont protégés par un Bearer secret (cf. routes/index.ts).
