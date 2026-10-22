@@ -33,6 +33,34 @@ export const RETRY_CONFIG = {
 } as const;
 
 /**
+ * Hard wall-clock ceiling for a single scraping job, in milliseconds.
+ *
+ * This is the PRIMARY protection against a wedged job, not a secondary belt:
+ * a query whose socket died cannot be bounded from the DB client at all (see
+ * the note in packages/db/src/drizzle/index.ts — Supavisor ignores
+ * `statement_timeout`, and postgres.js has no per-query timeout). Whatever the
+ * reason an `await` never settles (dead socket, unbounded network call, mapper
+ * bug), the job must eventually reject so BullMQ can retry it and free the
+ * queue. Without it a job stays `active` forever and — concurrency being
+ * small — stalls every job behind it (2026-10-16: 6 days of silence, 23 jobs
+ * queued, zero ads ingested).
+ *
+ * 10 min: comfortably above a legitimate run (Lobstr fetch + batch upsert of
+ * ~1000 ads takes well under a minute) while still bounded. Above Supabase's
+ * own 2min statement ceiling, so a server-side cancel — clearer error, socket
+ * intact — wins whenever the connection is still alive.
+ */
+export const SCRAPING_JOB_TIMEOUT_MS = 600_000;
+
+/**
+ * Same ceiling for the daily orchestrator, which is just as exposed: it runs
+ * many DB round-trips (one matching pass per account, then inserts), so any of
+ * them could hang on a dropped socket. 15 min — it legitimately takes longer
+ * than a scraping run since it walks every active alert.
+ */
+export const DAILY_ORCHESTRATOR_JOB_TIMEOUT_MS = 900_000;
+
+/**
  * Lobstr squids: one squid (scraper) per listing platform.
  * The webhook gives us `squid.id`, which tells us where the ads come from.
  */
