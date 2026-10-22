@@ -26,6 +26,18 @@ let keepAlive = false;
 // actif. Laisse le temps au réseau de revenir sans marteler WhatsApp.
 const RECONNECT_DELAY_MS = 5_000;
 
+// Au-delà, on arrête de retenter en mode keepAlive : une session morte
+// (device retiré côté téléphone) ne se répare pas en reconnectant, et la
+// boucle noyait les logs du worker — c'est ce qui a masqué 6 jours de panne
+// d'ingestion le 16/10/2026. L'envoi de notif reste en mode lazy et retentera
+// à la demande ; un re-pairing (`pnpm pair-whatsapp`) relance l'écoute.
+const MAX_KEEPALIVE_RECONNECT_ATTEMPTS = 5;
+
+// Backoff exponentiel plafonné entre deux tentatives keepAlive.
+const MAX_RECONNECT_DELAY_MS = 300_000;
+
+let keepAliveReconnectAttempts = 0;
+
 /**
  * Récupère le socket WhatsApp prêt à envoyer. Réutilise la connexion en
  * cours si elle est ouverte, sinon en ouvre une nouvelle via la session
@@ -61,6 +73,12 @@ async function openConnection(): Promise<WASocket> {
     // libère juste le singleton, l'appel suivant retentera.
     if (result.permanent) {
       await markWhatsAppAsDisconnected();
+      // Session morte : inutile de garder l'écoute permanente active, elle
+      // bouclerait indéfiniment sur un 401. On repasse en lazy.
+      keepAlive = false;
+      console.error(
+        '[whatsapp.service] session morte (device retiré ?) — écoute permanente arrêtée, re-pairing requis',
+      );
     }
     conn.cleanup();
     socketPromise = null;
@@ -68,6 +86,10 @@ async function openConnection(): Promise<WASocket> {
   }
 
   activeConnection = conn;
+
+  // Connexion rétablie : on repart d'un compteur neuf pour que le plafond
+  // s'applique aux échecs *consécutifs*, pas au cumul de la vie du process.
+  keepAliveReconnectAttempts = 0;
 
   // Détection automatique des groupes : dès que notre numéro est ajouté à un
   // groupe, on relie le groupe au compte (via le numéro de l'auteur) et on le
@@ -106,6 +128,22 @@ async function openConnection(): Promise<WASocket> {
       // continuer à capter les ajouts de groupes. Un échec (non appairé,
       // session morte) est avalé — le prochain envoi retentera de toute façon.
       if (keepAlive) {
+        if (keepAliveReconnectAttempts >= MAX_KEEPALIVE_RECONNECT_ATTEMPTS) {
+          keepAlive = false;
+          console.error(
+            `[whatsapp.service] ${keepAliveReconnectAttempts} reconnexions échouées — écoute permanente arrêtée (re-pairing requis)`,
+          );
+          return;
+        }
+
+        // Backoff exponentiel : évite de marteler WhatsApp et de saturer les
+        // logs quand la coupure dure.
+        const delay = Math.min(
+          RECONNECT_DELAY_MS * 2 ** keepAliveReconnectAttempts,
+          MAX_RECONNECT_DELAY_MS,
+        );
+        keepAliveReconnectAttempts += 1;
+
         setTimeout(() => {
           void getWhatsAppSocket().catch((error) => {
             console.warn(
@@ -113,7 +151,7 @@ async function openConnection(): Promise<WASocket> {
               error instanceof Error ? error.message : error,
             );
           });
-        }, RECONNECT_DELAY_MS);
+        }, delay);
       }
     }
   });
