@@ -20,6 +20,10 @@ export async function startAllWorkers(): Promise<Worker[]> {
       ...RETRY_CONFIG.SCRAPING,
       // 5 min — scraping fetches the Lobstr API then batch-upserts ads.
       lockDuration: 300000,
+      // Shock absorber, not a fix: with the default concurrency of 1, a single
+      // wedged job froze the whole queue for 6 days (2026-10-16). Kept low —
+      // every job batch-upserts against the same pooled DB.
+      concurrency: 3,
     }),
     new Worker(QUEUE_NAMES.DAILY_ORCHESTRATOR, dailyOrchestratorWorker, {
       connection,
