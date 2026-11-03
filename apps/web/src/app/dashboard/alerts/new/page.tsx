@@ -1,17 +1,18 @@
 import { AlertForm } from '@/components/alerts/alert-form';
 import { getUserAccount } from '@/services/account.service';
 import { getBrands, getVehicleModels } from '@/services/ad-reference.service';
-import { canCreateAlert } from '@/services/trial.service';
+import { getAlertCreationBlock } from '@/services/trial.service';
 
 export default async function NewAlertPage() {
   const account = await getUserAccount();
 
-  // hasFullAccess = active subscription OR ongoing trial — drives whether the form
-  // shows the paywall CTA instead of the alert fields.
-  const [brands, vehicleModels, hasFullAccess] = await Promise.all([
+  // creationBlock = raison de blocage (essai expiré sans abonnement, ou limite
+  // d'alertes de l'essai atteinte) — drives whether the form shows the paywall
+  // CTA instead of the alert fields.
+  const [brands, vehicleModels, creationBlock] = await Promise.all([
     getBrands(),
     getVehicleModels(),
-    canCreateAlert(account.id),
+    getAlertCreationBlock(account.id),
   ]);
 
   return (
@@ -20,7 +21,7 @@ export default async function NewAlertPage() {
       <AlertForm
         brands={brands}
         vehicleModels={vehicleModels}
-        hasFullAccess={hasFullAccess}
+        creationBlock={creationBlock}
       />
     </div>
   );

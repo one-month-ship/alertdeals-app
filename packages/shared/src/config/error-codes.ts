@@ -15,11 +15,19 @@ export type TAccountErrorCode = EAccountErrorCode;
 
 export enum ESubscriptionErrorCode {
   SUBSCRIPTION_REQUIRED = 'SUBSCRIPTION_REQUIRED',
+  // Essai gratuit : le compte a déjà atteint TRIAL_MAX_ALERTS alertes.
+  TRIAL_ALERT_LIMIT_REACHED = 'TRIAL_ALERT_LIMIT_REACHED',
   CHECKOUT_FAILED = 'CHECKOUT_FAILED',
   BILLING_PORTAL_FAILED = 'BILLING_PORTAL_FAILED',
   NO_ACTIVE_CUSTOMER = 'NO_ACTIVE_CUSTOMER',
 }
 export type TSubscriptionErrorCode = ESubscriptionErrorCode;
+
+// Raison de blocage de la création d'alerte, partagée entre le gate serveur
+// (trial.service) et l'UI (AlertForm) pour afficher le bon encart.
+export type TAlertCreationBlockReason =
+  | ESubscriptionErrorCode.SUBSCRIPTION_REQUIRED
+  | ESubscriptionErrorCode.TRIAL_ALERT_LIMIT_REACHED;
 
 export enum EAlertErrorCode {
   ALERT_NOT_FOUND = 'ALERT_NOT_FOUND',
