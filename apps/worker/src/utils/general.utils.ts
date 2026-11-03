@@ -1,4 +1,12 @@
 /**
+ * Erreur dédiée au couperet de `withTimeout`. Permet aux écouteurs `failed`
+ * des workers BullMQ de distinguer un job qui a PENDU (socket DB morte,
+ * réponse réseau perdue — incident 2026-11-03) d'un job qui a échoué pour une
+ * raison normale, et de déclencher le circuit breaker (cf. workers/index.ts).
+ */
+export class WithTimeoutError extends Error {}
+
+/**
  * Rejects if `task` outlives `timeoutMs`, otherwise settles exactly like it.
  *
  * Guards any job whose `await` could never settle (dead DB socket, unbounded
@@ -16,7 +24,7 @@ export async function withTimeout<T>(
 
   const timeout = new Promise<never>((_resolve, reject) => {
     timer = setTimeout(
-      () => reject(new Error(`${label} exceeded ${timeoutMs}ms — aborting`)),
+      () => reject(new WithTimeoutError(`${label} exceeded ${timeoutMs}ms — aborting`)),
       timeoutMs,
     );
   });
