@@ -25,6 +25,10 @@ export async function scrapingWorker(job: Job<ScrapingJob>) {
     throw new UnrecoverableError('Ad source is required');
   }
 
+  // Trace de début : sans elle, un job qui pend est introuvable dans les logs
+  // (gel du 2026-11-03 : impossible de savoir quels runs étaient en vol).
+  console.log(`[scraping] start run ${runId} (${source})`);
+
   await withTimeout(
     handleLobstrWebhook(runId, source),
     SCRAPING_JOB_TIMEOUT_MS,
