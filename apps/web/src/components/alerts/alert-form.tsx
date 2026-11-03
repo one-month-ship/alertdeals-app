@@ -28,8 +28,10 @@ import {
   EAlertMode,
   ENABLED_AD_SOURCE_DEFINITIONS,
   ENABLED_AD_SOURCE_VALUES,
+  ESubscriptionErrorCode,
   getAdSourceLabel,
   getSourcesMissingFilter,
+  type TAlertCreationBlockReason,
 } from "@alertdeals/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -41,7 +43,10 @@ import { LocationSearch } from "./location-search";
 type Props = {
   brands: TBrand[];
   vehicleModels: TVehicleModel[];
-  hasFullAccess: boolean;
+  // Raison de blocage de la création (essai expiré ou limite d'alertes de
+  // l'essai atteinte), null si la création est permise. Ignoré en édition :
+  // l'encart de blocage ne concerne que la création.
+  creationBlock?: TAlertCreationBlockReason | null;
   alert?: TAccountAlert;
 };
 
@@ -110,7 +115,7 @@ const CHANNEL_OPTIONS: {
 export function AlertForm({
   brands,
   vehicleModels,
-  hasFullAccess,
+  creationBlock = null,
   alert,
 }: Props) {
   const router = useRouter();
@@ -225,15 +230,21 @@ export function AlertForm({
     router.push(pages.alerts.list);
   };
 
-  if (!hasFullAccess && !isEditMode) {
+  if (creationBlock && !isEditMode) {
+    const isTrialLimit =
+      creationBlock === ESubscriptionErrorCode.TRIAL_ALERT_LIMIT_REACHED;
     return (
       <Card className="border-amber-500/30 bg-amber-500/10">
         <CardHeader>
-          <CardTitle className="text-amber-200">Abonnement requis</CardTitle>
+          <CardTitle className="text-amber-200">
+            {isTrialLimit ? "Limite de l'essai gratuit atteinte" : 'Abonnement requis'}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 text-amber-100/80">
           <p className="text-sm">
-            La création d'alertes est réservée aux membres abonnés.
+            {isTrialLimit
+              ? "Pendant l'essai gratuit, tu es limité à une seule alerte. Abonne-toi pour créer autant d'alertes que tu veux."
+              : "La création d'alertes est réservée aux membres abonnés."}
           </p>
           <Button asChild>
             <a href={pages.subscription}>S'abonner</a>

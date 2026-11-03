@@ -1,8 +1,6 @@
 import { AlertForm } from '@/components/alerts/alert-form';
-import { getUserAccount } from '@/services/account.service';
 import { getAlertById } from '@/services/alert.service';
 import { getBrands, getVehicleModels } from '@/services/ad-reference.service';
-import { canCreateAlert } from '@/services/trial.service';
 import { notFound } from 'next/navigation';
 
 type Props = {
@@ -12,15 +10,12 @@ type Props = {
 export default async function EditAlertPage({ params }: Props) {
   const { id } = await params;
 
-  const account = await getUserAccount();
-
-  // hasFullAccess = active subscription OR ongoing trial — drives whether the form
-  // shows the paywall CTA instead of the alert fields.
-  const [alert, brands, vehicleModels, hasFullAccess] = await Promise.all([
+  // Pas de gate ici : l'encart de blocage (paywall / limite d'essai) ne
+  // concerne que la création — en édition, AlertForm l'ignore de toute façon.
+  const [alert, brands, vehicleModels] = await Promise.all([
     getAlertById(id).catch(() => null),
     getBrands(),
     getVehicleModels(),
-    canCreateAlert(account.id),
   ]);
 
   if (!alert) notFound();
@@ -31,7 +26,6 @@ export default async function EditAlertPage({ params }: Props) {
       <AlertForm
         brands={brands}
         vehicleModels={vehicleModels}
-        hasFullAccess={hasFullAccess}
         alert={alert}
       />
     </div>
