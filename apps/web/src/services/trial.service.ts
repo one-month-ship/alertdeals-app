@@ -1,7 +1,12 @@
 import { createDrizzleSupabaseClient } from '@/lib/db';
 import { hasActiveSubscription } from '@/services/subscription.service';
-import { accounts, and, eq, isNull } from '@alertdeals/db';
-import { TRIAL_DURATION_DAYS } from '@alertdeals/shared';
+import { accounts, alerts, and, eq, isNull, sql } from '@alertdeals/db';
+import {
+  ESubscriptionErrorCode,
+  TRIAL_DURATION_DAYS,
+  TRIAL_MAX_ALERTS,
+  type TAlertCreationBlockReason,
+} from '@alertdeals/shared';
 
 // Trial state machine — also returned to the banner so the UI can render
 // the right copy + call-to-action without re-deriving the state on the client.
@@ -59,6 +64,41 @@ export async function canCreateAlert(accountId: string): Promise<boolean> {
     status.state === 'not_started' ||
     status.state === 'active'
   );
+}
+
+/**
+ * Gate complet de création d'alerte : essai/abonnement (comme canCreateAlert)
+ * PLUS la limite anti-abus TRIAL_MAX_ALERTS pendant l'essai. Renvoie null quand
+ * la création est permise, sinon la raison du blocage (code d'erreur à montrer).
+ *
+ * Distinct de canCreateAlert, qui reste le gate de la réactivation d'une alerte
+ * existante et de l'accès complet aux hot deals : là, pas de limite de compte.
+ */
+export async function getAlertCreationBlock(
+  accountId: string,
+): Promise<TAlertCreationBlockReason | null> {
+  const status = await getTrialStatus(accountId);
+
+  if (status.state === 'subscribed') return null;
+  if (status.state === 'expired') {
+    return ESubscriptionErrorCode.SUBSCRIPTION_REQUIRED;
+  }
+
+  // Essai (démarré ou non) : plafonné à TRIAL_MAX_ALERTS alertes, tous statuts
+  // confondus — une alerte en pause compte, sinon pause + création = contournement.
+  const client = await createDrizzleSupabaseClient();
+  const [row] = await client.rls((tx) =>
+    tx
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(alerts)
+      .where(eq(alerts.accountId, accountId)),
+  );
+
+  if ((row?.count ?? 0) >= TRIAL_MAX_ALERTS) {
+    return ESubscriptionErrorCode.TRIAL_ALERT_LIMIT_REACHED;
+  }
+
+  return null;
 }
 
 /**

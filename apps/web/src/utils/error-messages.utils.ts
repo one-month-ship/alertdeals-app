@@ -31,6 +31,8 @@ const ACCOUNT_ERROR_MESSAGES: Record<EAccountErrorCode, string> = {
 const SUBSCRIPTION_ERROR_MESSAGES: Record<ESubscriptionErrorCode, string> = {
   [ESubscriptionErrorCode.SUBSCRIPTION_REQUIRED]:
     'Un abonnement actif est requis pour cette action.',
+  [ESubscriptionErrorCode.TRIAL_ALERT_LIMIT_REACHED]:
+    "Pendant l'essai gratuit, tu es limité à une seule alerte. Abonne-toi pour en créer d'autres.",
   [ESubscriptionErrorCode.CHECKOUT_FAILED]:
     "Impossible de démarrer le paiement. Réessaie dans quelques instants.",
   [ESubscriptionErrorCode.BILLING_PORTAL_FAILED]:

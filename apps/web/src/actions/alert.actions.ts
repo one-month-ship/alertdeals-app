@@ -5,7 +5,11 @@ import { createDrizzleSupabaseClient } from '@/lib/db';
 import { getCurrentAccountId } from '@/services/account.service';
 import { getAccountAlerts } from '@/services/alert.service';
 import { recordTrialStart } from '@/services/marketing.service';
-import { canCreateAlert, startTrialCountdown } from '@/services/trial.service';
+import {
+  canCreateAlert,
+  getAlertCreationBlock,
+  startTrialCountdown,
+} from '@/services/trial.service';
 import { alertFormSchema, createAlertSchema } from '@/validation-schemas';
 import { alertBrands, alertModels, alerts, eq } from '@alertdeals/db';
 import {
@@ -47,11 +51,11 @@ export async function createAlert(data: unknown): Promise<TCreateAlertResult> {
     }
     const validated = parseResult.data;
 
-    // Trial-aware gate: blocks only "trial expired AND no subscription" users.
-    // Users still in their 3-day trial (or who haven't started one yet) are allowed.
-    const isAllowed = await canCreateAlert(accountId);
-    if (!isAllowed) {
-      return { error: ESubscriptionErrorCode.SUBSCRIPTION_REQUIRED };
+    // Trial-aware gate: blocks "trial expired AND no subscription" users, and
+    // caps trial accounts at TRIAL_MAX_ALERTS alerts (anti-abus de l'essai).
+    const creationBlock = await getAlertCreationBlock(accountId);
+    if (creationBlock) {
+      return { error: creationBlock };
     }
 
     const db = await createDrizzleSupabaseClient();
