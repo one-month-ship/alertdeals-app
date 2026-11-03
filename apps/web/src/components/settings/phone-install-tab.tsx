@@ -24,7 +24,14 @@ export function PhoneInstallTab() {
 }
 
 function InstallCard() {
-  const { canPrompt, isIOS, isInstalled, promptInstall } = usePwaInstall();
+  const {
+    canPrompt,
+    isIOS,
+    isSamsungInternet,
+    openInChromeUrl,
+    isInstalled,
+    promptInstall,
+  } = usePwaInstall();
 
   return (
     <Card>
@@ -48,7 +55,27 @@ function InstallCard() {
               comme une vraie app et recevoir les notifications.
             </p>
 
-            {canPrompt && (
+            {isSamsungInternet && (
+              // Samsung Internet : l'installation PWA y est bloquée par Play
+              // Protect (message « appli conçue pour une ancienne version
+              // d'Android »). On guide vers Chrome, où l'installation marche.
+              <div className="space-y-3 rounded-lg bg-secondary p-4 text-sm text-secondary-foreground">
+                <p className="font-medium">Tu navigues avec Samsung Internet</p>
+                <p className="text-muted-foreground">
+                  Android bloque pour l'instant l'installation des applications
+                  web depuis ce navigateur (message « application bloquée »).
+                  Ouvre AlertDeals dans Chrome pour l'installer sans blocage.
+                </p>
+                <Button asChild className="gap-2">
+                  <a href={openInChromeUrl}>
+                    <Download className="h-4 w-4" />
+                    Ouvrir dans Chrome
+                  </a>
+                </Button>
+              </div>
+            )}
+
+            {canPrompt && !isSamsungInternet && (
               // Android/Chrome : prompt d'installation natif disponible.
               <Button onClick={promptInstall} className="gap-2">
                 <Download className="h-4 w-4" />
@@ -70,7 +97,7 @@ function InstallCard() {
               </div>
             )}
 
-            {!canPrompt && !isIOS && (
+            {!canPrompt && !isIOS && !isSamsungInternet && (
               // Desktop ou navigateur sans prompt : install via le menu du navigateur.
               <p className="text-sm text-muted-foreground">
                 Ouvre le menu de ton navigateur puis « Installer AlertDeals » pour
