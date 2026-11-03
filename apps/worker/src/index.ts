@@ -8,7 +8,12 @@ import {
   closeWhatsAppSocket,
   startWhatsAppListener,
 } from "./services/whatsapp.service.js";
+import { startEventLoopWatchdog } from "./utils/event-loop-watchdog.js";
 import { startAllWorkers } from "./workers/index.js";
+
+// Démarré avant tout le reste : son thread doit déjà tourner si un gel de la
+// boucle principale survient pendant le boot (cf. event-loop-watchdog.ts).
+startEventLoopWatchdog();
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 4000);

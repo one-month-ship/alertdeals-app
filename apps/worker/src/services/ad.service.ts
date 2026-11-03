@@ -38,31 +38,25 @@ export const fetchAllReferenceData = async (
   dbClient: TDBAdminClient,
   platformField: TPlatformValue,
 ): Promise<TAdReferenceData> => {
-  const [
-    adTypesData,
-    adSubTypesData,
-    brandsData,
-    vehicleModelsData,
-    marketPositionsData,
-    zipcodesData,
-    gearBoxesData,
-    drivingLicencesData,
-    fuelsData,
-    vehicleSeatsData,
-    vehicleStatesData,
-  ] = await Promise.all([
-    dbClient.select().from(adTypes),
-    dbClient.select().from(adSubTypes),
-    dbClient.select().from(brands),
-    dbClient.select().from(vehicleModels),
-    dbClient.select().from(marketPositions),
-    dbClient.select().from(locations),
-    dbClient.select().from(gearBoxes),
-    dbClient.select().from(drivingLicences),
-    dbClient.select().from(fuels),
-    dbClient.select().from(vehicleSeats),
-    dbClient.select().from(vehicleStates),
-  ]);
+  // ⚠️ Séquentiel, surtout pas Promise.all : au-delà de `max` requêtes
+  // simultanées (10 par défaut), postgres.js met l'excédent en file côté
+  // client et, derrière le pooler Supavisor (port 6543, mode transaction),
+  // ces requêtes différées perdent leurs réponses et pendent pour toujours.
+  // Incident 2026-11-03, reproduit hors Railway : 11 selects × 3 jobs
+  // concurrents → seul le premier lot répond, les 22 autres gèlent ; en
+  // séquentiel les 33 passent en 1,5s. Le coût (~1s par job) est négligeable
+  // à la cadence des runs Lobstr.
+  const adTypesData = await dbClient.select().from(adTypes);
+  const adSubTypesData = await dbClient.select().from(adSubTypes);
+  const brandsData = await dbClient.select().from(brands);
+  const vehicleModelsData = await dbClient.select().from(vehicleModels);
+  const marketPositionsData = await dbClient.select().from(marketPositions);
+  const zipcodesData = await dbClient.select().from(locations);
+  const gearBoxesData = await dbClient.select().from(gearBoxes);
+  const drivingLicencesData = await dbClient.select().from(drivingLicences);
+  const fuelsData = await dbClient.select().from(fuels);
+  const vehicleSeatsData = await dbClient.select().from(vehicleSeats);
+  const vehicleStatesData = await dbClient.select().from(vehicleStates);
 
   return {
     adTypes: new Map(adTypesData.map((item) => [item[platformField] || '', item.id])),
