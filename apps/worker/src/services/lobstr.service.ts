@@ -6,6 +6,7 @@ import {
   TAdInsert,
 } from "@alertdeals/db";
 import { TAdSource } from "@alertdeals/shared";
+import { isRetryableHttpCode } from "../config/index.js";
 import { fetchAllReferenceData } from "./ad.service.js";
 import { getAdMapper, TRawAd } from "./lobstr/index.js";
 
@@ -60,23 +61,31 @@ const saveAdsFromLobstr = async (
   const referenceData = await fetchAllReferenceData(db, LOBSTR_PLATFORM_FIELD);
 
   const mapAd = getAdMapper(source);
-  const getAdsData = ads.map((ad) => mapAd(db, ad, referenceData));
-  const adsToPersistPromise = await Promise.allSettled(getAdsData);
 
   // This step to ensure we insert only valid objects to the db query
   // Log every drop: a rejected mapper (unexpected payload shape), a null
   // (deliberate skip, e.g. non-vehicle or no price)
   // would otherwise disappear silently.
+  // Mapping en séquentiel (plus de Promise.allSettled) pour la même raison que
+  // fetchAllReferenceData : un run plein de marques/modèles inconnus ferait
+  // partir autant d'INSERT simultanés que d'annonces — au-delà du pool DB, ces
+  // requêtes différées pendent derrière Supavisor (incident 2026-11-03).
   const adsToPersist: TAdInsert[] = [];
-  adsToPersistPromise.forEach((adPromise) => {
-    if (adPromise.status === "rejected") return;
-    if (!adPromise.value) return;
+  for (const ad of ads) {
+    let adData: TAdInsert | null;
+    try {
+      adData = await mapAd(db, ad, referenceData);
+    } catch {
+      // Mapper rejeté (payload inattendu) → on saute l'annonce, comme avant.
+      continue;
+    }
+    if (!adData) continue;
 
     // Everything we ingest today is a car: default to typeId 1 instead of dropping
-    if (!adPromise.value.typeId) adPromise.value.typeId = 1;
+    if (!adData.typeId) adData.typeId = 1;
 
-    adsToPersist.push(adPromise.value);
-  });
+    adsToPersist.push(adData);
+  }
 
   if (adsToPersist.length === 0) {
     return;
@@ -101,19 +110,19 @@ const saveAdsFromLobstr = async (
 const LOBSTR_RESULTS_URL = "https://api.lobstr.io/v1/results";
 const LOBSTR_RESULTS_PAGE_SIZE = 1000;
 
-type TLobstrResultsPage = {
-  data?: TRawAd[];
-  total_results?: number;
-  total_pages?: number;
-  page?: number;
-};
+// L'API Lobstr throttle à ~1 requête/seconde ("Expected available in
+// 1 second") : après un redémarrage, les webhooks accumulés partent en rafale
+// et se throttlent entre eux (2026-11-03 : ~30 runs perdus en 429). On retente
+// donc la page au lieu de condamner tout le run.
+const LOBSTR_FETCH_MAX_ATTEMPTS = 4;
+const LOBSTR_FETCH_RETRY_BASE_DELAY_MS = 1_500;
 
-// Gets all the results of a lobstr run using their API (paginated)
-// https://docs.lobstr.io/docs/get-results
-const getResultsFromRun = async (runId: string): Promise<TRawAd[]> => {
-  const results: TRawAd[] = [];
-  let page = 1;
-
+// Une tentative par page, re-essayée sur les codes transitoires (429 en tête).
+const fetchResultsPage = async (
+  runId: string,
+  page: number,
+): Promise<Response> => {
+  let attempt = 1;
   while (true) {
     const response = await fetch(
       `${LOBSTR_RESULTS_URL}?run=${runId}&page=${page}&page_size=${LOBSTR_RESULTS_PAGE_SIZE}`,
@@ -128,6 +137,36 @@ const getResultsFromRun = async (runId: string): Promise<TRawAd[]> => {
         signal: AbortSignal.timeout(120_000),
       },
     );
+
+    if (!isRetryableHttpCode(response.status) || attempt >= LOBSTR_FETCH_MAX_ATTEMPTS) {
+      return response;
+    }
+
+    // Consomme le body avant d'abandonner la réponse, sinon undici garde la
+    // socket occupée.
+    await response.text().catch(() => undefined);
+    await new Promise((resolve) =>
+      setTimeout(resolve, LOBSTR_FETCH_RETRY_BASE_DELAY_MS * attempt),
+    );
+    attempt += 1;
+  }
+};
+
+type TLobstrResultsPage = {
+  data?: TRawAd[];
+  total_results?: number;
+  total_pages?: number;
+  page?: number;
+};
+
+// Gets all the results of a lobstr run using their API (paginated)
+// https://docs.lobstr.io/docs/get-results
+const getResultsFromRun = async (runId: string): Promise<TRawAd[]> => {
+  const results: TRawAd[] = [];
+  let page = 1;
+
+  while (true) {
+    const response = await fetchResultsPage(runId, page);
 
     if (!response.ok) {
       const body = await response.text();
