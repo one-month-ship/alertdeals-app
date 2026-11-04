@@ -50,7 +50,15 @@ async function runDailyOrchestrator() {
     // `account` est chargé en plus pour récupérer l'email + whatsappPhoneNumber/
     // whatsappIsGroup, utilisés par notification.service pour router les notifs
     // email (Resend) et WhatsApp.
-    with: { location: true, brands: true, models: true, account: true },
+    // `vehicleModel` est imbriqué sous chaque modèle coché : le matcher a
+    // besoin du brandId de chaque modèle pour la sémantique par marque
+    // (une marque cochée sans modèle coché = toute la gamme).
+    with: {
+      location: true,
+      brands: true,
+      models: { with: { vehicleModel: true } },
+      account: true,
+    },
   });
 
   if (activeAlerts.length === 0) {
