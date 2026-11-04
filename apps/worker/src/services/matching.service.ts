@@ -16,21 +16,26 @@ import {
   type TAlertBrand,
   type TAlertModel,
   type TLocation,
+  type TVehicleModel,
 } from '@alertdeals/db';
 import {
   DAMAGED_VEHICLE_STATE_ID,
   DEFAULT_ALERT_SOURCES,
   EAlertMode,
 } from '@alertdeals/shared';
+import { splitBrandModelSelection } from './matching.helpers.js';
 
 // Depuis la PR multi-select, les marques/modèles d'une alerte vivent dans
 // des tables de jointure (`alertBrands`, `alertModels`) et non plus en
 // colonnes directes sur `alerts`. Le caller doit donc charger ces relations
 // avec `db.query.alerts.findMany({ with: { brands: true, models: true } })`.
+// `vehicleModel` est chargé en plus sur chaque modèle (relation imbriquée
+// `models: { with: { vehicleModel: true } }`) : la sémantique par marque a
+// besoin de savoir à quelle marque appartient chaque modèle coché.
 type AlertWithRelations = TAlert & {
   location: TLocation | null;
   brands: TAlertBrand[];
-  models: TAlertModel[];
+  models: (TAlertModel & { vehicleModel: TVehicleModel })[];
 };
 
 export type TMatchedAdRow = { adId: string; alertId: string };
@@ -52,11 +57,18 @@ export async function findMatchedAdIdsForAccount(
 
     // Marques/modèles : l'utilisateur peut en sélectionner plusieurs.
     // Si la liste est vide → pas de contrainte (alerte tous-modèles confondus),
-    // sinon `inArray` matche tout ad dont la marque/modèle est dans la sélection.
-    const brandIds = alert.brands.map((b) => b.brandId);
-    const modelIds = alert.models.map((m) => m.modelId);
-    if (brandIds.length > 0) conditions.push(inArray(ads.brandId, brandIds));
-    if (modelIds.length > 0) conditions.push(inArray(ads.modelId, modelIds));
+    // sinon sémantique par marque (voir splitBrandModelSelection) : un ad
+    // matche si son modèle est explicitement coché OU si sa marque est cochée
+    // sans qu'aucun de ses modèles le soit.
+    const { modelIds, unrestrictedBrandIds } = splitBrandModelSelection(
+      alert.brands,
+      alert.models,
+    );
+    const brandModelConditions: SQL[] = [];
+    if (modelIds.length > 0) brandModelConditions.push(inArray(ads.modelId, modelIds));
+    if (unrestrictedBrandIds.length > 0)
+      brandModelConditions.push(inArray(ads.brandId, unrestrictedBrandIds));
+    if (brandModelConditions.length > 0) conditions.push(or(...brandModelConditions)!);
 
     if (alert.modelYearMin != null) conditions.push(gte(ads.modelYear, alert.modelYearMin));
     if (alert.modelYearMax != null) conditions.push(lte(ads.modelYear, alert.modelYearMax));
